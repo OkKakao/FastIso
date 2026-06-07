@@ -250,6 +250,40 @@ normalization. Use the X/Y zoom controls, mouse wheel for X zoom, Shift+mouse
 wheel for Y zoom, axis dragging, hover tooltips, and optional three-decimal peak
 labels to inspect local peaks.
 
+## Portable EXE
+
+Build a one-file Windows GUI executable with PyInstaller:
+
+```powershell
+.\.venv\Scripts\python -m pip install -e ".[package]"
+.\.venv\Scripts\pyinstaller `
+  --noconfirm `
+  --onefile `
+  --windowed `
+  --name FastIso-GUI `
+  --paths src `
+  --collect-data fastiso `
+  --exclude-module pytest `
+  --exclude-module matplotlib `
+  --exclude-module PIL `
+  --exclude-module pandas `
+  --exclude-module seaborn `
+  --exclude-module pyopenms `
+  --exclude-module IsoSpecPy `
+  --exclude-module brainpy `
+  --exclude-module Cython `
+  --distpath dist\portable-optimized `
+  --workpath build\pyinstaller_optimized `
+  --specpath build\pyinstaller_spec_optimized `
+  tools\fastiso_gui_entry.py
+```
+
+The resulting file is `dist\portable-optimized\FastIso-GUI.exe`. In the local
+Windows build environment, the optimized one-file GUI executable is about
+`53.7 MB`. A less selective build from the development environment was about
+`74.3 MB`, mainly because optional development and plotting dependencies were
+collected.
+
 ## CZT Windowed Profiles
 
 Use `mass_profile_window_many_counts` when only a local mass window is needed or
