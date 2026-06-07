@@ -8,8 +8,8 @@ frequency bins after Gaussian broadening, and use CZT to evaluate only the mass
 window requested by the caller. This makes FastIso most useful for server-side
 or batch workflows where dense isotope profiles are needed repeatedly.
 
-FastIso is a research prototype. It is not intended to replace exact isotope
-peak enumerators for small molecules.
+FastIso is a research prototype. It is designed around dense broadened profile
+simulation, not small-molecule peak-list generation.
 
 ## What FastIso Is Good At
 
@@ -21,13 +21,13 @@ peak enumerators for small molecules.
 
 ## What FastIso Is Not
 
-- A faster exact fine-peak enumerator for every formula.
-- A better small-molecule peak-list generator than IsoSpec-style methods.
-- A universal replacement for Brainpy, IsoSpecPy, pyOpenMS, or enviPat.
+- A universal isotope simulation method for every use case.
+- A small-molecule-first peak-list generator.
+- A substitute for method validation on the user's own formulas and instrument
+  settings.
 
-Brainpy is fast for aggregated isotopic variants, but it does not preserve fine
-structure in the same way as fine-peak generators. FastIso's strongest niche is
-dense broadened profile simulation after instrument broadening.
+FastIso's strongest niche is cached dense profile simulation after instrument
+broadening, especially when only a local mass window is needed.
 
 ## Current Status
 
@@ -173,9 +173,10 @@ Saved benchmark summaries are in `benchmark_results/`. The main overview is:
 Key local observations from the current benchmark set:
 
 - small molecules are not the target;
-- 12 kDa dense profile benchmark: FastIso was much faster than convolved
-  IsoSpecPy, pyOpenMS, and enviPat in the tested environment;
-- Brainpy was fast but did not preserve fine structure in the same way;
+- 12 kDa dense profile benchmark showed a clear speed advantage over
+  peak-enumeration-plus-convolution workflows in the tested environment;
+- aggregated peak-list style outputs do not represent the same fine-structure
+  information as dense broadened profiles;
 - 240 kDa CZT local-window profile reached about 7x speedup over full dense
   profile evaluation for small windows;
 - synthetic CHNOS stress tests completed windowed simulation up to 1.94 GDa,
