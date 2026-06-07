@@ -438,7 +438,14 @@ class FastIsoGui:
         max_rows = 500
         inserted = 0
         for row_idx, formula in enumerate(formulas):
-            for mass, value in zip(mass_axis[row_idx], intensity[row_idx]):
+            row_mass = np.asarray(mass_axis[row_idx], dtype=np.float64)
+            row_intensity = np.asarray(intensity[row_idx], dtype=np.float64)
+            row_indices = _profile_preview_indices(
+                row_mass,
+                row_intensity,
+                max_rows=max(1, (max_rows - inserted) // (len(formulas) - row_idx)),
+            )
+            for point_idx in row_indices:
                 if inserted >= max_rows:
                     return
                 self.preview.insert(
@@ -446,8 +453,8 @@ class FastIsoGui:
                     "end",
                     values=(
                         formula,
-                        f"{float(mass):.8f}",
-                        f"{float(value):.8g}",
+                        f"{float(row_mass[point_idx]):.8f}",
+                        f"{float(row_intensity[point_idx]):.8g}",
                     ),
                 )
                 inserted += 1
@@ -501,9 +508,7 @@ class FastIsoGui:
         y = y[finite]
         if x.size < 2:
             return
-        stride = max(1, int(np.ceil(x.size / 1500)))
-        x = x[::stride]
-        y = y[::stride]
+        x, y = _profile_plot_points(x, y, max_points=1500)
         x_min = float(np.min(x))
         x_max = float(np.max(x))
         y_min = float(np.min(y))
@@ -545,6 +550,91 @@ def _parse_formula_list(text: str) -> list[str]:
     for formula in formulas:
         parse_formula(formula)
     return formulas
+
+
+def _profile_preview_indices(
+    mass_axis: np.ndarray,
+    intensity: np.ndarray,
+    *,
+    max_rows: int,
+) -> np.ndarray:
+    """Return peak-focused row indices for the table preview."""
+
+    max_rows = int(max_rows)
+    if max_rows <= 0:
+        return np.array([], dtype=np.int64)
+    finite = np.isfinite(mass_axis) & np.isfinite(intensity)
+    finite_indices = np.flatnonzero(finite)
+    if finite_indices.size <= max_rows:
+        return finite_indices
+
+    y = intensity[finite]
+    local = _local_peak_indices(y)
+    if local.size:
+        peak_indices = finite_indices[local]
+        peak_order = np.argsort(intensity[peak_indices])[::-1]
+        selected = peak_indices[peak_order[:max_rows]]
+        return np.array(sorted(selected), dtype=np.int64)
+
+    order = np.argsort(y)[::-1]
+    selected = finite_indices[order[:max_rows]]
+    return np.array(sorted(selected), dtype=np.int64)
+
+
+def _profile_plot_points(
+    mass_axis: np.ndarray,
+    intensity: np.ndarray,
+    *,
+    max_points: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Downsample a dense profile while preserving narrow local peaks."""
+
+    max_points = int(max_points)
+    if mass_axis.size <= max_points or max_points < 4:
+        return mass_axis, intensity
+
+    peak_budget = max(1, max_points // 4)
+    bucket_count = max(1, (max_points - peak_budget - 4) // 2)
+    edges = np.linspace(0, mass_axis.size, bucket_count + 1, dtype=np.int64)
+    indices: set[int] = {0, int(mass_axis.size - 1)}
+    for start, stop in zip(edges[:-1], edges[1:]):
+        if stop <= start:
+            continue
+        segment = intensity[start:stop]
+        indices.add(int(start + np.argmin(segment)))
+        indices.add(int(start + np.argmax(segment)))
+
+    local = _local_peak_indices(intensity)
+    if local.size:
+        peak_order = np.argsort(intensity[local])[::-1]
+        indices.update(int(index) for index in local[peak_order[:peak_budget]])
+
+    ordered = np.array(sorted(indices), dtype=np.int64)
+    if ordered.size > max_points:
+        keep = np.linspace(0, ordered.size - 1, max_points, dtype=np.int64)
+        ordered = ordered[keep]
+    return mass_axis[ordered], intensity[ordered]
+
+
+def _local_peak_indices(intensity: np.ndarray) -> np.ndarray:
+    if intensity.size == 0:
+        return np.array([], dtype=np.int64)
+    if intensity.size == 1:
+        if intensity[0] > 0.0:
+            return np.array([0], dtype=np.int64)
+        return np.array([], dtype=np.int64)
+    peaks = []
+    if intensity[0] > intensity[1] and intensity[0] > 0.0:
+        peaks.append(0)
+    middle = np.flatnonzero(
+        (intensity[1:-1] >= intensity[:-2])
+        & (intensity[1:-1] >= intensity[2:])
+        & (intensity[1:-1] > 0.0)
+    ) + 1
+    peaks.extend(int(index) for index in middle)
+    if intensity[-1] > intensity[-2] and intensity[-1] > 0.0:
+        peaks.append(int(intensity.size - 1))
+    return np.array(peaks, dtype=np.int64)
 
 
 def _parse_elements(text: str) -> list[str] | None:

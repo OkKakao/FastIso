@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-117 passed, 6 skipped
+119 passed, 6 skipped
 ```
 
 ## Installation
@@ -214,7 +214,9 @@ or:
 The GUI accepts the same formula syntax as the CLI, including adjacent and
 nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Its default
 `auto` mode chooses an adaptive local window and enables Auto grid; choose
-`full` only when a complete dense profile is needed.
+`full` only when a complete dense profile is needed. The preview table and plot
+use peak-preserving display sampling so narrow small-formula isotope peaks are
+not hidden by dense output grids.
 
 ## CZT Windowed Profiles
 
