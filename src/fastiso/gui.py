@@ -477,6 +477,8 @@ class FastIsoGui:
                 f"{metadata['window_mode']} "
                 f"[{metadata['window_start']:.6g}, {metadata['window_stop']:.6g}]"
             )
+        if "auto_window_method" in metadata:
+            lines.append(f"auto window method: {metadata['auto_window_method']}")
         self._set_text(self.summary_text, "\n".join(lines))
 
     def _draw_plot(self) -> None:

@@ -50,7 +50,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-116 passed, 6 skipped
+117 passed, 6 skipped
 ```
 
 ## Installation
@@ -138,7 +138,7 @@ By default, profile commands use resolving power 100,000. Pass
 
 For small or skewed formulas, a mean-centered fixed residual window can miss the
 largest peak. Use adaptive mode to choose a residual window from the estimated
-profile sigma:
+isotope support:
 
 ```powershell
 .\.venv\Scripts\fastiso window S10 `
@@ -148,9 +148,21 @@ profile sigma:
   --output-dm 0.002
 ```
 
+For small formulas, adaptive mode first tries exact isotope-support windowing
+with `--auto-window-cutoff` and falls back to sigma-based sizing when the exact
+support would be too large. This keeps all meaningful peaks in view for cases
+such as `Cl` through `Cl6`:
+
+```powershell
+.\.venv\Scripts\fastiso window Cl Cl2 Cl3 Cl4 Cl5 Cl6 `
+  --elements Cl `
+  --window-mode adaptive `
+  --auto-grid
+```
+
 Adaptive mode solves the window placement problem. Very narrow peaks may still
-need a smaller `--dm` or larger `--gaussian-sigma` to avoid sinc-like ringing in
-the sampled dense profile.
+need `--auto-grid`, a smaller `--dm`, or larger `--gaussian-sigma` to avoid
+sinc-like ringing in the sampled dense profile.
 
 Use auto-grid when the desired resolving power or Gaussian width should control
 the sampling grid:

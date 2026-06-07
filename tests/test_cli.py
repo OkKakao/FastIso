@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from fastiso.cli import main
+from fastiso.cli import main, simulate_profiles
 
 
 def test_cli_lists_full_isotope_resource(capsys):
@@ -176,6 +176,38 @@ def test_cli_adaptive_window_includes_skewed_small_formula_base_peak(capsys):
     assert metadata["window_stop"] > 1.068
     assert residual_axis[max_idx] == pytest.approx(-0.928, abs=0.05)
     assert metadata["output_dm"] == pytest.approx(0.05)
+
+
+def test_adaptive_window_uses_exact_support_for_chlorine_series():
+    formulas = ["Cl"] + [f"Cl{count}" for count in range(2, 7)]
+
+    result = simulate_profiles(
+        formulas,
+        elements=["Cl"],
+        window_mode="adaptive",
+        dm=0.1,
+        output_dm=0.1,
+        min_fft_len=255,
+        method="log_pruned",
+        storage_mode="research",
+    )
+    metadata = result["metadata"]
+
+    assert metadata["auto_window_method"] == "exact_support"
+    assert metadata["window_start"] == pytest.approx(-3.004571, abs=1e-4)
+    assert metadata["window_stop"] == pytest.approx(9.177728, abs=1e-4)
+
+    mean_masses = metadata["total_mean_masses"]
+    for row_idx, formula in enumerate(formulas):
+        count = row_idx + 1
+        residual_axis = [
+            mass - mean_masses[row_idx]
+            for mass in result["mass_axis"][row_idx]
+        ]
+        light_peak = count * -0.4840951867793653
+        heavy_peak = count * 1.5129547232206347
+        assert min(residual_axis) <= light_peak
+        assert max(residual_axis) >= heavy_peak
 
 
 def test_cli_auto_grid_reduces_single_atom_ringing(capsys):
