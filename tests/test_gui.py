@@ -5,24 +5,16 @@ pytest.importorskip("tkinter")
 
 from fastiso.cli import simulate_profiles
 from fastiso.gui import (
+    _dragged_x_center,
+    _dragged_y_zoom,
+    _format_peak_label,
     _label_peak_indices,
     _max_normalized_intensity,
     _resolving_power_from_sigma,
     _sigma_from_resolving_power,
     _single_formula_mean_mass,
     _profile_plot_points,
-    _profile_preview_indices,
 )
-
-
-def test_gui_preview_keeps_sulfur_isotope_peaks():
-    mass_axis, intensity = _sulfur_profile()
-
-    indices = _profile_preview_indices(mass_axis, intensity, max_rows=10)
-    selected_masses = mass_axis[indices]
-
-    for target in _SULFUR_ISOTOPE_MASSES:
-        assert np.any(np.abs(selected_masses - target) < 0.001)
 
 
 def test_gui_plot_downsampling_keeps_sulfur_isotope_peaks():
@@ -57,6 +49,25 @@ def test_gui_peak_labels_include_sulfur_isotope_peaks():
 
     for target in _SULFUR_ISOTOPE_MASSES:
         assert np.any(np.abs(selected_masses - target) < 0.001)
+
+
+def test_gui_peak_label_uses_three_decimal_places():
+    assert _format_peak_label(31.9720711744) == "31.972"
+
+
+def test_gui_axis_drag_helpers_adjust_plot_view():
+    center = _dragged_x_center(
+        50.0,
+        dx_pixels=100.0,
+        plot_width=500.0,
+        full_x_min=0.0,
+        full_x_max=100.0,
+        visible_width=20.0,
+    )
+
+    assert center == pytest.approx(46.0)
+    assert _dragged_y_zoom(1.0, dy_pixels=-120.0) == pytest.approx(2.0)
+    assert _dragged_y_zoom(1.0, dy_pixels=120.0) == pytest.approx(0.5)
 
 
 def test_gui_resolving_power_sigma_conversion_round_trips():

@@ -90,6 +90,11 @@ class FastIsoGui:
         self._plot_x_center: float | None = None
         self._plot_hover_tag = "plot-hover"
         self._plot_points: list[dict[str, float]] = []
+        self._plot_geometry: dict[str, float] | None = None
+        self._plot_drag_mode: str | None = None
+        self._plot_drag_start: tuple[int, int] | None = None
+        self._plot_drag_start_center: float | None = None
+        self._plot_drag_start_y_zoom = 1.0
 
         self._install_broadening_traces()
         self._build_ui()
@@ -258,27 +263,8 @@ class FastIsoGui:
         self.parse_text = tk.Text(output, height=5, wrap="none")
         self.parse_text.grid(row=1, column=0, sticky="ew", pady=(4, 10))
 
-        ttk.Label(output, text="Profile Preview").grid(row=2, column=0, sticky="w")
-        self.preview = ttk.Treeview(
-            output,
-            columns=("formula", "mass", "intensity"),
-            show="headings",
-            height=14,
-        )
-        self.preview.heading("formula", text="Formula")
-        self.preview.heading("mass", text="Mass")
-        self.preview.heading("intensity", text="Intensity")
-        self.preview.column("formula", width=160, anchor="w")
-        self.preview.column("mass", width=160, anchor="e")
-        self.preview.column("intensity", width=160, anchor="e")
-        self.preview.grid(row=3, column=0, sticky="nsew")
-
-        yscroll = ttk.Scrollbar(output, orient="vertical", command=self.preview.yview)
-        yscroll.grid(row=3, column=1, sticky="ns")
-        self.preview.configure(yscrollcommand=yscroll.set)
-
         plot_tools = ttk.Frame(output)
-        plot_tools.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        plot_tools.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(2, 0))
         ttk.Button(plot_tools, text="X-", width=4, command=lambda: self._zoom_plot("x", 0.5)).pack(
             side="left",
             padx=(0, 4),
@@ -306,15 +292,18 @@ class FastIsoGui:
             command=self._draw_plot,
         ).pack(side="left")
 
-        self.plot = tk.Canvas(output, height=320, background="white", highlightthickness=1)
-        self.plot.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self.plot = tk.Canvas(output, height=520, background="white", highlightthickness=1)
+        self.plot.grid(row=3, column=0, columnspan=2, sticky="nsew", pady=(4, 0))
         self.plot.bind("<Configure>", lambda _event: self._draw_plot())
         self.plot.bind("<Motion>", self._on_plot_motion)
         self.plot.bind("<Leave>", lambda _event: self._hide_plot_tooltip())
         self.plot.bind("<MouseWheel>", self._on_plot_wheel)
+        self.plot.bind("<ButtonPress-1>", self._on_plot_button_press)
+        self.plot.bind("<B1-Motion>", self._on_plot_drag)
+        self.plot.bind("<ButtonRelease-1>", self._on_plot_button_release)
 
         self.summary_text = tk.Text(output, height=8, wrap="word")
-        self.summary_text.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        self.summary_text.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 0))
 
     def _add_entry(
         self,
@@ -432,7 +421,7 @@ class FastIsoGui:
         self.save_button.configure(state="disabled")
         self.run_button.configure(state="disabled")
         self.status_var.set("Running simulation...")
-        self._clear_preview()
+        self._clear_display()
 
         self._worker = threading.Thread(
             target=self._run_worker,
@@ -534,38 +523,8 @@ class FastIsoGui:
         return settings
 
     def _render_result(self, result: dict[str, Any]) -> None:
-        self._render_preview(result)
         self._draw_plot()
         self._render_summary(result)
-
-    def _render_preview(self, result: dict[str, Any]) -> None:
-        self._clear_preview()
-        formulas = result["formulas"]
-        mass_axis = np.asarray(result["mass_axis"])
-        intensity = np.asarray(result["intensity"])
-        max_rows = 500
-        inserted = 0
-        for row_idx, formula in enumerate(formulas):
-            row_mass = np.asarray(mass_axis[row_idx], dtype=np.float64)
-            row_intensity = np.asarray(intensity[row_idx], dtype=np.float64)
-            row_indices = _profile_preview_indices(
-                row_mass,
-                row_intensity,
-                max_rows=max(1, (max_rows - inserted) // (len(formulas) - row_idx)),
-            )
-            for point_idx in row_indices:
-                if inserted >= max_rows:
-                    return
-                self.preview.insert(
-                    "",
-                    "end",
-                    values=(
-                        formula,
-                        f"{float(row_mass[point_idx]):.8f}",
-                        f"{float(row_intensity[point_idx]):.8g}",
-                    ),
-                )
-                inserted += 1
 
     def _render_summary(self, result: dict[str, Any]) -> None:
         metadata = result["metadata"]
@@ -606,6 +565,7 @@ class FastIsoGui:
     def _draw_plot(self) -> None:
         self.plot.delete("all")
         self._plot_points = []
+        self._plot_geometry = None
         width = max(self.plot.winfo_width(), 2)
         height = max(self.plot.winfo_height(), 2)
         left_pad = 58
@@ -653,6 +613,18 @@ class FastIsoGui:
             y_max = y_min + 1.0
         plot_w = width - left_pad - right_pad
         plot_h = height - top_pad - bottom_pad
+        self._plot_geometry = {
+            "x0": float(left_pad),
+            "y0": float(top_pad),
+            "x1": float(width - right_pad),
+            "y1": float(height - bottom_pad),
+            "x_min": float(x_min),
+            "x_max": float(x_max),
+            "full_x_min": float(np.min(x)),
+            "full_x_max": float(np.max(x)),
+            "y_min": float(y_min),
+            "y_max": float(y_max),
+        }
         coords: list[float] = []
         for x_val, y_val, raw_val in zip(plot_x, plot_y, plot_raw):
             px = left_pad + (float(x_val) - x_min) / (x_max - x_min) * plot_w
@@ -751,7 +723,7 @@ class FastIsoGui:
             self.plot.create_text(
                 px + 3,
                 max(y0 + 6, py - 14),
-                text=_format_float(x_val),
+                text=_format_peak_label(x_val),
                 anchor="w",
                 fill="#303030",
                 font=("TkDefaultFont", 8),
@@ -779,6 +751,8 @@ class FastIsoGui:
         self._zoom_plot(axis, factor)
 
     def _on_plot_motion(self, event: tk.Event) -> None:
+        if self._plot_drag_mode is not None:
+            return
         if not self._plot_points:
             return
         nearest = min(
@@ -822,9 +796,64 @@ class FastIsoGui:
     def _hide_plot_tooltip(self) -> None:
         self.plot.delete(self._plot_hover_tag)
 
-    def _clear_preview(self) -> None:
-        for item in self.preview.get_children():
-            self.preview.delete(item)
+    def _on_plot_button_press(self, event: tk.Event) -> None:
+        mode = self._plot_drag_mode_at(event.x, event.y)
+        if mode is None:
+            return
+        self._plot_drag_mode = mode
+        self._plot_drag_start = (event.x, event.y)
+        self._plot_drag_start_center = self._plot_x_center
+        self._plot_drag_start_y_zoom = self._plot_y_zoom
+        self._hide_plot_tooltip()
+        self.plot.configure(cursor="sb_h_double_arrow" if mode == "x" else "sb_v_double_arrow")
+
+    def _on_plot_drag(self, event: tk.Event) -> None:
+        if self._plot_drag_mode is None or self._plot_drag_start is None:
+            return
+        geometry = self._plot_geometry
+        if geometry is None:
+            return
+        start_x, start_y = self._plot_drag_start
+        if self._plot_drag_mode == "x":
+            start_center = (
+                self._plot_drag_start_center
+                if self._plot_drag_start_center is not None
+                else 0.5 * (geometry["x_min"] + geometry["x_max"])
+            )
+            self._plot_x_center = _dragged_x_center(
+                start_center,
+                event.x - start_x,
+                geometry["x1"] - geometry["x0"],
+                geometry["full_x_min"],
+                geometry["full_x_max"],
+                geometry["x_max"] - geometry["x_min"],
+            )
+        elif self._plot_drag_mode == "y":
+            self._plot_y_zoom = _dragged_y_zoom(
+                self._plot_drag_start_y_zoom,
+                event.y - start_y,
+            )
+        self._draw_plot()
+
+    def _on_plot_button_release(self, _event: tk.Event) -> None:
+        self._plot_drag_mode = None
+        self._plot_drag_start = None
+        self._plot_drag_start_center = None
+        self.plot.configure(cursor="")
+
+    def _plot_drag_mode_at(self, x: int, y: int) -> str | None:
+        geometry = self._plot_geometry
+        if geometry is None:
+            return None
+        if geometry["x0"] <= x <= geometry["x1"] and geometry["y1"] <= y <= geometry["y1"] + 30:
+            return "x"
+        if geometry["x0"] - 52 <= x <= geometry["x0"] and geometry["y0"] <= y <= geometry["y1"]:
+            return "y"
+        return None
+
+    def _clear_display(self) -> None:
+        self._plot_points = []
+        self._plot_geometry = None
         self.plot.delete("all")
         self._set_text(self.summary_text, "")
 
@@ -889,6 +918,10 @@ def _format_float(value: float) -> str:
     return f"{float(value):.12g}"
 
 
+def _format_peak_label(value: float) -> str:
+    return f"{float(value):.3f}"
+
+
 def _format_numeric_metadata(value: object) -> str:
     if value is None:
         return "None"
@@ -898,35 +931,6 @@ def _format_numeric_metadata(value: object) -> str:
     if array.size == 1:
         return _format_float(float(array[0]))
     return f"{_format_float(float(np.min(array)))}..{_format_float(float(np.max(array)))}"
-
-
-def _profile_preview_indices(
-    mass_axis: np.ndarray,
-    intensity: np.ndarray,
-    *,
-    max_rows: int,
-) -> np.ndarray:
-    """Return peak-focused row indices for the table preview."""
-
-    max_rows = int(max_rows)
-    if max_rows <= 0:
-        return np.array([], dtype=np.int64)
-    finite = np.isfinite(mass_axis) & np.isfinite(intensity)
-    finite_indices = np.flatnonzero(finite)
-    if finite_indices.size <= max_rows:
-        return finite_indices
-
-    y = intensity[finite]
-    local = _local_peak_indices(y)
-    if local.size:
-        peak_indices = finite_indices[local]
-        peak_order = np.argsort(intensity[peak_indices])[::-1]
-        selected = peak_indices[peak_order[:max_rows]]
-        return np.array(sorted(selected), dtype=np.int64)
-
-    order = np.argsort(y)[::-1]
-    selected = finite_indices[order[:max_rows]]
-    return np.array(sorted(selected), dtype=np.int64)
 
 
 def _profile_plot_points(
@@ -979,6 +983,33 @@ def _profile_plot_points_with_raw(
     indices = np.searchsorted(mass_axis, selected_mass)
     indices = np.clip(indices, 0, raw_intensity.size - 1)
     return selected_mass, selected_display, raw_intensity[indices]
+
+
+def _dragged_x_center(
+    start_center: float,
+    dx_pixels: float,
+    plot_width: float,
+    full_x_min: float,
+    full_x_max: float,
+    visible_width: float,
+) -> float:
+    if plot_width <= 0.0 or visible_width <= 0.0:
+        return float(start_center)
+    full_width = float(full_x_max) - float(full_x_min)
+    if full_width <= visible_width:
+        return 0.5 * (float(full_x_min) + float(full_x_max))
+    delta_mass = -float(dx_pixels) / float(plot_width) * float(visible_width)
+    center = float(start_center) + delta_mass
+    half_width = 0.5 * float(visible_width)
+    return min(
+        max(center, float(full_x_min) + half_width),
+        float(full_x_max) - half_width,
+    )
+
+
+def _dragged_y_zoom(start_zoom: float, dy_pixels: float) -> float:
+    factor = 2.0 ** (-float(dy_pixels) / 120.0)
+    return min(1024.0, max(0.125, float(start_zoom) * factor))
 
 
 def _max_normalized_intensity(intensity: np.ndarray) -> np.ndarray:
