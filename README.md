@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-129 passed, 6 skipped
+132 passed, 6 skipped
 ```
 
 ## Installation
@@ -141,6 +141,12 @@ By default, profile commands use resolving power 100,000. Pass
 broadening kernel on the mass axis. Resolving power is converted to this sigma
 per formula with `FWHM = mass / resolving_power` and
 `sigma = FWHM / 2.35482`.
+Pass `--charge-state` or `--charge` to export charged spectra on an `m/z` axis:
+FastIso applies `(neutral_mass - z * electron_mass) / abs(z)` for nonzero
+integer charge states. This only applies the electron-mass correction; adducts
+or proton additions should be included directly in the formula. For charged
+outputs, metadata keeps `mass_output_dm` for the neutral-mass sampling interval
+and `output_dm` for the exported `m/z` interval.
 In the GUI, the resolving-power and Gaussian-sigma fields are synchronized for
 a single formula using that formula's mean mass. For multiple formulas, the
 resolving-power mode still produces one effective sigma per formula.
@@ -229,12 +235,13 @@ or:
 
 The GUI accepts the same formula syntax as the CLI, including adjacent and
 nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Its default
-start state uses the `full` isotope preset with an empty explicit Elements
-field, so formulas can use any element present in the packaged full isotope
-table. The FT table still includes only the spectral elements actually present
-in the formula. Its default `auto` mode chooses an adaptive local window and
-enables Auto grid; choose `full` mode only when a complete dense profile is
-needed. The plot uses
+start state uses the `full` isotope preset, so formulas can use any element
+present in the packaged full isotope table. The FT table still includes only
+the spectral elements actually present in the formula. The Charge state field
+changes the displayed and exported x axis from neutral mass to `m/z`, with only
+electron-mass correction applied. Its default `auto` mode chooses an adaptive
+local window and enables Auto grid; choose `full` mode only when a complete
+dense profile is needed. The plot uses
 peak-preserving display sampling so narrow small-formula isotope peaks are not
 hidden by dense output grids. The GUI also exposes the same `none`, `sum`, and
 `max` normalization modes. The plot itself is always shown with max-normalized

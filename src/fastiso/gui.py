@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import sys
 import threading
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from math import log, sqrt
 from typing import Any
 
@@ -25,7 +25,7 @@ except ImportError as exc:  # pragma: no cover - depends on Python build.
 _FORMULA_SPLIT_RE = re.compile(r"[\s,;]+")
 _DEFAULT_FORMULA = "C500H800N125O200S10"
 _DEFAULT_PRESET = "full"
-_DEFAULT_ELEMENTS = ""
+_DEFAULT_CHARGE_STATE = "0"
 _FWHM_TO_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
 
 
@@ -59,7 +59,7 @@ class FastIsoGui:
 
         self.formula_var = tk.StringVar(value=_DEFAULT_FORMULA)
         self.preset_var = tk.StringVar(value=_DEFAULT_PRESET)
-        self.elements_var = tk.StringVar(value=_DEFAULT_ELEMENTS)
+        self.charge_state_var = tk.StringVar(value=_DEFAULT_CHARGE_STATE)
         self.mode_var = tk.StringVar(value="auto")
         self.start_var = tk.StringVar(value="-0.5")
         self.stop_var = tk.StringVar(value="0.5")
@@ -122,7 +122,7 @@ class FastIsoGui:
         row = 0
         row = self._add_entry(controls, row, "Formula", self.formula_var, width=36)
         row = self._add_entry(controls, row, "Preset", self.preset_var, width=36)
-        row = self._add_entry(controls, row, "Elements", self.elements_var, width=36)
+        row = self._add_entry(controls, row, "Charge state", self.charge_state_var, width=36)
 
         ttk.Label(controls, text="Mode").grid(row=row, column=0, sticky="w", pady=4)
         mode = ttk.Combobox(
@@ -351,7 +351,7 @@ class FastIsoGui:
             "write",
             lambda *_args: self._on_broadening_edit("sigma"),
         )
-        for variable in (self.formula_var, self.preset_var, self.elements_var):
+        for variable in (self.formula_var, self.preset_var):
             variable.trace_add(
                 "write",
                 lambda *_args: self._sync_broadening_fields(self._broadening_source),
@@ -369,7 +369,6 @@ class FastIsoGui:
         mean_mass = _single_formula_mean_mass(
             self.formula_var.get(),
             self.preset_var.get(),
-            self.elements_var.get(),
         )
         self._syncing_broadening = True
         try:
@@ -481,7 +480,6 @@ class FastIsoGui:
 
     def _collect_settings(self) -> dict[str, Any]:
         formulas = _parse_formula_list(self.formula_var.get())
-        elements = _parse_elements(self.elements_var.get())
         mode = self.mode_var.get()
         gaussian_sigma = _optional_float(self.gaussian_sigma_var.get(), "Gaussian sigma")
         resolving_power = _optional_float(self.rp_var.get(), "Resolving power")
@@ -493,7 +491,7 @@ class FastIsoGui:
         settings: dict[str, Any] = {
             "formulas": formulas,
             "preset": self.preset_var.get().strip() or "common",
-            "elements": elements,
+            "charge_state": _required_int(self.charge_state_var.get(), "Charge state"),
             "dm": _required_float(self.dm_var.get(), "Table dm"),
             "auto_grid": bool(self.auto_grid_var.get()),
             "samples_per_fwhm": _required_float(
@@ -536,6 +534,8 @@ class FastIsoGui:
             f"Profile backend: {metadata.get('profile_backend', 'ft')}",
             f"Resource: {metadata['resource']} ({metadata['isotope_data_version']})",
             f"Spectral elements: {', '.join(metadata['spectral_elements']) or '(none)'}",
+            f"charge state: {metadata.get('charge_state', 0)}",
+            f"x-axis: {metadata.get('axis_unit', 'mass')}",
             f"dm: {metadata['dm']}",
             f"auto grid: {metadata['auto_grid']}",
             f"min FFT: {metadata.get('requested_min_fft_len', metadata.get('min_fft_len'))}",
@@ -589,6 +589,7 @@ class FastIsoGui:
             return
         x = np.asarray(mass_axis[0], dtype=np.float64)
         y = np.asarray(intensity[0], dtype=np.float64)
+        axis_label = _axis_label_for_result(self.result)
         finite = np.isfinite(x) & np.isfinite(y)
         x = x[finite]
         y = y[finite]
@@ -655,6 +656,7 @@ class FastIsoGui:
             x_max,
             y_min,
             y_max,
+            axis_label,
         )
         if self.show_peak_labels_var.get():
             self._draw_peak_labels(visible_x, visible_y, left_pad, top_pad, plot_w, plot_h, x_min, x_max, y_min, y_max)
@@ -689,10 +691,11 @@ class FastIsoGui:
         x_max: float,
         y_min: float,
         y_max: float,
+        axis_label: str,
     ) -> None:
         self.plot.create_text(x0, y1 + 18, text=_format_float(x_min), anchor="w", fill="#505050")
         self.plot.create_text(x1, y1 + 18, text=_format_float(x_max), anchor="e", fill="#505050")
-        self.plot.create_text((x0 + x1) / 2, y1 + 18, text="mass", anchor="center", fill="#505050")
+        self.plot.create_text((x0 + x1) / 2, y1 + 18, text=axis_label, anchor="center", fill="#505050")
         self.plot.create_text(x0 - 8, y0, text=_format_float(y_max), anchor="e", fill="#505050")
         self.plot.create_text(x0 - 8, y1, text=_format_float(y_min), anchor="e", fill="#505050")
         self.plot.create_text(x0 - 42, (y0 + y1) / 2, text="max norm", anchor="center", angle=90, fill="#505050")
@@ -768,8 +771,9 @@ class FastIsoGui:
 
     def _show_plot_tooltip(self, x: int, y: int, point: dict[str, float]) -> None:
         self._hide_plot_tooltip()
+        axis_label = _axis_label_for_result(self.result)
         text = (
-            f"mass {point['mass']:.8f}\n"
+            f"{axis_label} {point['mass']:.8f}\n"
             f"max norm {point['norm']:.6g}\n"
             f"raw {point['raw']:.6g}"
         )
@@ -877,7 +881,6 @@ def _parse_formula_list(text: str) -> list[str]:
 def _single_formula_mean_mass(
     formula_text: str,
     preset_text: str,
-    elements_text: str,
 ) -> float | None:
     formulas = _parse_formula_list(formula_text)
     if len(formulas) != 1:
@@ -885,16 +888,10 @@ def _single_formula_mean_mass(
     preset = preset_text.strip() or "common"
     resource = "full" if preset == "full" else "common"
     registry = load_isotope_registry(resource)
-    elements = _parse_elements(elements_text)
-    selected_elements = (
-        tuple(elements)
-        if elements is not None
-        else registry.elements_for_preset(preset)
-    )
     component = split_formula_isotope_components(
         formulas[0],
         registry.patterns,
-        elements=selected_elements,
+        elements=registry.elements_for_preset(preset),
     )
     spectral_mass = sum(
         count * registry.patterns[element].mean_mass
@@ -932,6 +929,13 @@ def _format_numeric_metadata(value: object) -> str:
     if array.size == 1:
         return _format_float(float(array[0]))
     return f"{_format_float(float(np.min(array)))}..{_format_float(float(np.max(array)))}"
+
+
+def _axis_label_for_result(result: Mapping[str, Any] | None) -> str:
+    if result is None:
+        return "mass"
+    metadata = result.get("metadata", {})
+    return "m/z" if metadata.get("axis_unit") == "m/z" else "mass"
 
 
 def _profile_plot_points(
@@ -1061,12 +1065,6 @@ def _local_peak_indices(intensity: np.ndarray) -> np.ndarray:
     if intensity[-1] > intensity[-2] and intensity[-1] > 0.0:
         peaks.append(int(intensity.size - 1))
     return np.array(peaks, dtype=np.int64)
-
-
-def _parse_elements(text: str) -> list[str] | None:
-    elements = [part for part in _FORMULA_SPLIT_RE.split(text.strip()) if part]
-    return elements or None
-
 
 def _required_float(text: str, label: str) -> float:
     value = _optional_float(text, label)

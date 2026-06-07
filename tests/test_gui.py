@@ -5,14 +5,14 @@ pytest.importorskip("tkinter")
 
 from fastiso.cli import simulate_profiles
 from fastiso.gui import (
-    _DEFAULT_ELEMENTS,
+    _DEFAULT_CHARGE_STATE,
     _DEFAULT_PRESET,
+    _axis_label_for_result,
     _dragged_x_center,
     _dragged_y_zoom,
     _format_peak_label,
     _label_peak_indices,
     _max_normalized_intensity,
-    _parse_elements,
     _resolving_power_from_sigma,
     _sigma_from_resolving_power,
     _single_formula_mean_mass,
@@ -75,15 +75,19 @@ def test_gui_axis_drag_helpers_adjust_plot_view():
 
 def test_gui_defaults_cover_full_isotope_table():
     assert _DEFAULT_PRESET == "full"
-    assert _parse_elements(_DEFAULT_ELEMENTS) is None
-    assert _single_formula_mean_mass("Xe2Pb", _DEFAULT_PRESET, _DEFAULT_ELEMENTS) > 0.0
+    assert _DEFAULT_CHARGE_STATE == "0"
+    assert _single_formula_mean_mass("Xe2Pb", _DEFAULT_PRESET) > 0.0
+
+
+def test_gui_axis_label_follows_charge_metadata():
+    assert _axis_label_for_result(None) == "mass"
+    assert _axis_label_for_result({"metadata": {"axis_unit": "m/z"}}) == "m/z"
 
 
 def test_gui_resolving_power_sigma_conversion_round_trips():
     mean_mass = _single_formula_mean_mass(
         "C500H800N125O200S10",
         "common",
-        "C H N O S",
     )
 
     sigma = _sigma_from_resolving_power(mean_mass, 100_000)
@@ -94,8 +98,8 @@ def test_gui_resolving_power_sigma_conversion_round_trips():
 
 
 def test_gui_mean_mass_includes_mass_only_elements():
-    base = _single_formula_mean_mass("C6H12O6", "common", "C H O")
-    iodinated = _single_formula_mean_mass("C6H12O6I", "common", "C H O")
+    base = _single_formula_mean_mass("C6H12O6", "common")
+    iodinated = _single_formula_mean_mass("C6H12O6I", "common")
 
     assert iodinated - base == pytest.approx(126.9044719)
 

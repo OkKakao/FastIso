@@ -5,7 +5,7 @@ import math
 import numpy as np
 import pytest
 
-from fastiso.cli import main, simulate_profiles
+from fastiso.cli import _ELECTRON_MASS_U, main, simulate_profiles
 
 
 def test_cli_lists_full_isotope_resource(capsys):
@@ -302,6 +302,81 @@ def test_profile_normalization_modes():
     assert np.max(max_result["intensity"][0]) == pytest.approx(1.0)
     assert max_result["metadata"]["normalization"] == "max"
     assert max_result["metadata"]["profile_maxima"][0] == pytest.approx(1.0)
+
+
+def test_charge_state_converts_output_axis_to_mz():
+    neutral = simulate_profiles(
+        ["C"],
+        elements=["C"],
+        window_mode="mass",
+        start=11.99,
+        stop=12.01,
+        output_dm=0.01,
+        min_fft_len=255,
+        method="log_pruned",
+        storage_mode="research",
+    )
+    charged = simulate_profiles(
+        ["C"],
+        elements=["C"],
+        charge_state=2,
+        window_mode="mass",
+        start=11.99,
+        stop=12.01,
+        output_dm=0.01,
+        min_fft_len=255,
+        method="log_pruned",
+        storage_mode="research",
+    )
+
+    expected = (np.asarray(neutral["mass_axis"]) - 2 * _ELECTRON_MASS_U) / 2.0
+
+    np.testing.assert_allclose(charged["mass_axis"], expected, rtol=0.0, atol=1e-12)
+    assert neutral["metadata"]["axis_unit"] == "mass"
+    assert charged["metadata"]["axis_unit"] == "m/z"
+    assert charged["metadata"]["charge_state"] == 2
+    assert charged["metadata"]["mass_output_dm"] == pytest.approx(0.01)
+    assert charged["metadata"]["output_dm"] == pytest.approx(0.005)
+    assert charged["metadata"]["mean_mz"][0] == pytest.approx(
+        (charged["metadata"]["total_mean_masses"][0] - 2 * _ELECTRON_MASS_U) / 2.0
+    )
+
+
+def test_cli_charged_csv_export_uses_mz_column(tmp_path):
+    output_path = tmp_path / "charged.csv"
+
+    assert main(
+        [
+            "window",
+            "C",
+            "--elements",
+            "C",
+            "--charge",
+            "2",
+            "--window-mode",
+            "mass",
+            "--start",
+            "11.99",
+            "--stop",
+            "12.01",
+            "--output-dm",
+            "0.01",
+            "--min-fft-len",
+            "255",
+            "--method",
+            "log_pruned",
+            "--storage-mode",
+            "research",
+            "--output",
+            str(output_path),
+        ]
+    ) == 0
+
+    reader = csv.DictReader(output_path.read_text(encoding="utf-8").splitlines())
+
+    assert reader.fieldnames == ["formula", "mz", "intensity"]
+    rows = list(reader)
+    assert float(rows[0]["mz"]) == pytest.approx((11.99 - 2 * _ELECTRON_MASS_U) / 2.0)
 
 
 def test_cli_gaussian_sigma_disables_default_resolving_power(capsys):

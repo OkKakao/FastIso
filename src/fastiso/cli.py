@@ -26,6 +26,7 @@ from .log_table import CenteredLogPhaseTable, has_cython_backend
 _EXACT_PROFILE_MAX_ATOMS = 64
 _EXACT_PROFILE_MAX_STATE_POINT_PRODUCT = 8_000_000
 _AUTO_MIN_FFT_LEN = 255
+_ELECTRON_MASS_U = 0.000548579909065
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -119,6 +120,17 @@ def _add_profile_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--storage-mode", choices=("research", "production", "minimal", "auto"), default="auto")
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument(
+        "--charge-state",
+        "--charge",
+        dest="charge_state",
+        type=int,
+        default=0,
+        help=(
+            "integer ion charge state; output x axis is m/z for nonzero charge "
+            "with electron-mass correction only"
+        ),
+    )
+    parser.add_argument(
         "--normalize",
         choices=("none", "sum", "max"),
         default="none",
@@ -165,6 +177,7 @@ def _run_simulate(args: argparse.Namespace) -> int:
         method=args.method,
         storage_mode=args.storage_mode,
         workers=args.workers,
+        charge_state=args.charge_state,
         normalize=args.normalize,
     )
     _write_profile_result(result, output_format=args.format, output_path=args.output)
@@ -187,6 +200,7 @@ def _run_window(args: argparse.Namespace) -> int:
         method=args.method,
         storage_mode=args.storage_mode,
         workers=args.workers,
+        charge_state=args.charge_state,
         normalize=args.normalize,
         window_mode=args.window_mode,
         start=args.start,
@@ -280,6 +294,7 @@ def simulate_profiles(
     method: str = "cython_auto",
     storage_mode: str = "auto",
     workers: int | None = None,
+    charge_state: int = 0,
     normalize: str = "none",
     window_mode: str | None = None,
     start: float | None = None,
@@ -291,6 +306,7 @@ def simulate_profiles(
     auto_window_cutoff: float = 1e-8,
     auto_window_max_states: int = 200_000,
 ) -> dict[str, Any]:
+    charge_state = _normalize_charge_state(charge_state)
     requested_window_mode = window_mode
     if window_mode == "auto":
         window_mode = "residual" if start is not None or stop is not None else "adaptive"
@@ -451,9 +467,12 @@ def simulate_profiles(
         raise ValueError("window_mode must be auto, residual, mass, or adaptive")
 
     mass_axis = mass_axis + mass_shifts[:, None]
+    output_axis = _axis_for_charge_state(mass_axis, charge_state)
     profiles = _normalize_profiles(profiles, normalize)
     info_mean = np.asarray(info.get("mean_masses", table.mean_mass_many_counts(counts)))
     info["mean_masses"] = info_mean + mass_shifts
+    neutral_output_dm = float(info.get("output_dm", table.dm))
+    output_axis_dm = _spacing_for_charge_state(neutral_output_dm, charge_state)
     metadata = {
         "preset": preset,
         "resource": _resource_for_request(preset, resource),
@@ -470,15 +489,19 @@ def simulate_profiles(
         "requested_dm": requested_dm,
         "auto_grid": bool(auto_grid),
         "samples_per_fwhm": float(samples_per_fwhm),
-        "output_dm": info.get("output_dm", table.dm),
+        "output_dm": output_axis_dm,
+        "mass_output_dm": neutral_output_dm,
         "min_fft_len": actual_min_fft_len,
         "requested_min_fft_len": requested_min_fft_len,
         "auto_min_fft_len": auto_min_fft_len,
         "n_fft": table.n_fft,
-        "n_points": int(mass_axis.shape[1]),
+        "n_points": int(output_axis.shape[1]),
         "storage_mode": table.storage_mode,
         "table_nbytes": table.table_nbytes,
         "workers": workers,
+        "charge_state": charge_state,
+        "electron_mass_u": _ELECTRON_MASS_U,
+        "axis_unit": "m/z" if charge_state else "mass",
         "normalization": normalize,
         "profile_sums": np.sum(profiles, axis=1).tolist(),
         "profile_maxima": np.max(profiles, axis=1).tolist(),
@@ -487,6 +510,11 @@ def simulate_profiles(
             None if effective_sigma is None else np.asarray(effective_sigma).tolist()
         ),
     }
+    if charge_state:
+        metadata["mean_mz"] = _axis_for_charge_state(
+            total_mean_masses,
+            charge_state,
+        ).tolist()
     if "exact_state_counts" in info:
         metadata["exact_state_counts"] = np.asarray(info["exact_state_counts"]).tolist()
         metadata["exact_probability_sums"] = np.asarray(
@@ -510,7 +538,7 @@ def simulate_profiles(
             metadata["auto_window_method"] = info.get("auto_window_method", "unknown")
     return {
         "formulas": list(formulas),
-        "mass_axis": mass_axis,
+        "mass_axis": output_axis,
         "intensity": profiles,
         "metadata": metadata,
     }
@@ -534,7 +562,8 @@ def _write_profile_result(
             out.write("\n")
             return
         writer = csv.writer(out)
-        writer.writerow(["formula", "mass", "intensity"])
+        x_column = "mz" if result["metadata"].get("axis_unit") == "m/z" else "mass"
+        writer.writerow(["formula", x_column, "intensity"])
         mass_axis = np.asarray(result["mass_axis"])
         intensity = np.asarray(result["intensity"])
         for row_idx, formula in enumerate(result["formulas"]):
@@ -574,6 +603,25 @@ def _mean_mass_from_counts(
     patterns: Mapping[str, IsotopePattern],
 ) -> float:
     return float(sum(count * patterns[element].mean_mass for element, count in counts.items()))
+
+
+def _normalize_charge_state(charge_state: int) -> int:
+    if int(charge_state) != charge_state:
+        raise ValueError("charge_state must be an integer")
+    return int(charge_state)
+
+
+def _axis_for_charge_state(mass_axis: np.ndarray, charge_state: int) -> np.ndarray:
+    axis = np.asarray(mass_axis, dtype=np.float64)
+    if charge_state == 0:
+        return axis
+    return (axis - float(charge_state) * _ELECTRON_MASS_U) / abs(float(charge_state))
+
+
+def _spacing_for_charge_state(spacing: float, charge_state: int) -> float:
+    if charge_state == 0:
+        return float(spacing)
+    return float(spacing) / abs(float(charge_state))
 
 
 def _sigma_from_resolving_power(mean_mass: np.ndarray, resolving_power: float) -> np.ndarray:
