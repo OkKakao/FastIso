@@ -4,7 +4,13 @@ import pytest
 pytest.importorskip("tkinter")
 
 from fastiso.cli import simulate_profiles
-from fastiso.gui import _profile_plot_points, _profile_preview_indices
+from fastiso.gui import (
+    _resolving_power_from_sigma,
+    _sigma_from_resolving_power,
+    _single_formula_mean_mass,
+    _profile_plot_points,
+    _profile_preview_indices,
+)
 
 
 def test_gui_preview_keeps_sulfur_isotope_peaks():
@@ -29,6 +35,27 @@ def test_gui_plot_downsampling_keeps_sulfur_isotope_peaks():
     assert plot_mass.size < mass_axis.size
     for target in _SULFUR_ISOTOPE_MASSES:
         assert np.any(np.abs(plot_mass - target) < 0.001)
+
+
+def test_gui_resolving_power_sigma_conversion_round_trips():
+    mean_mass = _single_formula_mean_mass(
+        "C500H800N125O200S10",
+        "common",
+        "C H N O S",
+    )
+
+    sigma = _sigma_from_resolving_power(mean_mass, 100_000)
+    resolving_power = _resolving_power_from_sigma(mean_mass, sigma)
+
+    assert sigma == pytest.approx(0.0513123459)
+    assert resolving_power == pytest.approx(100_000)
+
+
+def test_gui_mean_mass_includes_mass_only_elements():
+    base = _single_formula_mean_mass("C6H12O6", "common", "C H O")
+    iodinated = _single_formula_mean_mass("C6H12O6I", "common", "C H O")
+
+    assert iodinated - base == pytest.approx(126.9044719)
 
 
 _SULFUR_ISOTOPE_MASSES = (

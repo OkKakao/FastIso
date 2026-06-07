@@ -6,12 +6,14 @@ import re
 import sys
 import threading
 from collections.abc import Sequence
+from math import log, sqrt
 from typing import Any
 
 import numpy as np
 
 from .cli import _write_profile_result, simulate_profiles
 from .formula import parse_formula
+from .isotopes import load_isotope_registry, split_formula_isotope_components
 
 try:
     import tkinter as tk
@@ -23,6 +25,7 @@ except ImportError as exc:  # pragma: no cover - depends on Python build.
 _FORMULA_SPLIT_RE = re.compile(r"[\s,;]+")
 _DEFAULT_FORMULA = "C500H800N125O200S10"
 _DEFAULT_ELEMENTS = "C H N O S"
+_FWHM_TO_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -78,10 +81,14 @@ class FastIsoGui:
 
         self.result: dict[str, Any] | None = None
         self._worker: threading.Thread | None = None
+        self._broadening_source = "rp"
+        self._syncing_broadening = False
 
+        self._install_broadening_traces()
         self._build_ui()
         self._sync_mode_state()
         self._sync_grid_state()
+        self._sync_broadening_fields("rp")
 
     def run(self) -> None:
         self.root.mainloop()
@@ -298,6 +305,53 @@ class FastIsoGui:
         state = "disabled" if self.auto_grid_var.get() else "normal"
         self.dm_entry.configure(state=state)
 
+    def _install_broadening_traces(self) -> None:
+        self.rp_var.trace_add("write", lambda *_args: self._on_broadening_edit("rp"))
+        self.gaussian_sigma_var.trace_add(
+            "write",
+            lambda *_args: self._on_broadening_edit("sigma"),
+        )
+        for variable in (self.formula_var, self.preset_var, self.elements_var):
+            variable.trace_add(
+                "write",
+                lambda *_args: self._sync_broadening_fields(self._broadening_source),
+            )
+
+    def _on_broadening_edit(self, source: str) -> None:
+        if self._syncing_broadening:
+            return
+        self._broadening_source = source
+        self._sync_broadening_fields(source)
+
+    def _sync_broadening_fields(self, source: str) -> None:
+        if self._syncing_broadening:
+            return
+        mean_mass = _single_formula_mean_mass(
+            self.formula_var.get(),
+            self.preset_var.get(),
+            self.elements_var.get(),
+        )
+        self._syncing_broadening = True
+        try:
+            if source == "rp":
+                resolving_power = _optional_float(self.rp_var.get(), "Resolving power")
+                if mean_mass is None or resolving_power is None:
+                    self.gaussian_sigma_var.set("")
+                    return
+                sigma = _sigma_from_resolving_power(mean_mass, resolving_power)
+                self.gaussian_sigma_var.set(_format_float(sigma))
+            elif source == "sigma":
+                sigma = _optional_float(self.gaussian_sigma_var.get(), "Gaussian sigma")
+                if mean_mass is None or sigma is None:
+                    self.rp_var.set("")
+                    return
+                resolving_power = _resolving_power_from_sigma(mean_mass, sigma)
+                self.rp_var.set(_format_float(resolving_power))
+        except Exception:
+            return
+        finally:
+            self._syncing_broadening = False
+
     def parse_preview(self) -> None:
         try:
             formulas = _parse_formula_list(self.formula_var.get())
@@ -390,8 +444,10 @@ class FastIsoGui:
         mode = self.mode_var.get()
         gaussian_sigma = _optional_float(self.gaussian_sigma_var.get(), "Gaussian sigma")
         resolving_power = _optional_float(self.rp_var.get(), "Resolving power")
-        if gaussian_sigma is not None:
+        if self._broadening_source == "sigma" and gaussian_sigma is not None:
             resolving_power = None
+        elif resolving_power is not None:
+            gaussian_sigma = None
 
         settings: dict[str, Any] = {
             "formulas": formulas,
@@ -471,6 +527,8 @@ class FastIsoGui:
             f"dm: {metadata['dm']}",
             f"auto grid: {metadata['auto_grid']}",
             f"min FFT: {metadata.get('requested_min_fft_len', metadata.get('min_fft_len'))}",
+            f"resolving power: {metadata.get('resolving_power')}",
+            f"effective sigma: {_format_sigma_metadata(metadata.get('gaussian_sigma'))}",
             f"n_fft: {metadata['n_fft']}",
             f"points: {metadata['n_points']}",
             f"table memory: {metadata['table_nbytes']} bytes",
@@ -551,6 +609,62 @@ def _parse_formula_list(text: str) -> list[str]:
     for formula in formulas:
         parse_formula(formula)
     return formulas
+
+
+def _single_formula_mean_mass(
+    formula_text: str,
+    preset_text: str,
+    elements_text: str,
+) -> float | None:
+    formulas = _parse_formula_list(formula_text)
+    if len(formulas) != 1:
+        return None
+    preset = preset_text.strip() or "common"
+    resource = "full" if preset == "full" else "common"
+    registry = load_isotope_registry(resource)
+    elements = _parse_elements(elements_text)
+    selected_elements = (
+        tuple(elements)
+        if elements is not None
+        else registry.elements_for_preset(preset)
+    )
+    component = split_formula_isotope_components(
+        formulas[0],
+        registry.patterns,
+        elements=selected_elements,
+    )
+    spectral_mass = sum(
+        count * registry.patterns[element].mean_mass
+        for element, count in component.spectral_counts.items()
+    )
+    return float(spectral_mass + component.mass_shift)
+
+
+def _sigma_from_resolving_power(mean_mass: float, resolving_power: float) -> float:
+    if resolving_power <= 0.0:
+        raise ValueError("resolving power must be positive")
+    return float(mean_mass) / float(resolving_power) / _FWHM_TO_SIGMA
+
+
+def _resolving_power_from_sigma(mean_mass: float, sigma: float) -> float:
+    if sigma <= 0.0:
+        raise ValueError("Gaussian sigma must be positive")
+    return float(mean_mass) / (float(sigma) * _FWHM_TO_SIGMA)
+
+
+def _format_float(value: float) -> str:
+    return f"{float(value):.12g}"
+
+
+def _format_sigma_metadata(value: object) -> str:
+    if value is None:
+        return "None"
+    array = np.asarray(value, dtype=np.float64)
+    if array.ndim == 0:
+        return _format_float(float(array))
+    if array.size == 1:
+        return _format_float(float(array[0]))
+    return f"{_format_float(float(np.min(array)))}..{_format_float(float(np.max(array)))}"
 
 
 def _profile_preview_indices(

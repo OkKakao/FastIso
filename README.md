@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-121 passed, 6 skipped
+123 passed, 6 skipped
 ```
 
 ## Installation
@@ -141,6 +141,9 @@ By default, profile commands use resolving power 100,000. Pass
 broadening kernel on the mass axis. Resolving power is converted to this sigma
 per formula with `FWHM = mass / resolving_power` and
 `sigma = FWHM / 2.35482`.
+In the GUI, the resolving-power and Gaussian-sigma fields are synchronized for
+a single formula using that formula's mean mass. For multiple formulas, the
+resolving-power mode still produces one effective sigma per formula.
 
 `--min-fft-len` defaults to `auto`. In this mode FastIso uses a small FFT floor
 and lets the formula isotope variance plus Gaussian broadening determine the
