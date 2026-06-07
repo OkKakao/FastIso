@@ -226,3 +226,7 @@ The currently intended public entry points are:
 - `/simulate/window`
 
 This API may still change while the project is pre-1.0.
+
+## License
+
+FastIso is licensed under the Apache License 2.0. See `LICENSE`.
