@@ -215,6 +215,25 @@ def test_adaptive_window_uses_exact_support_for_chlorine_series():
         assert np.sum(intensity) == pytest.approx(1.0)
 
 
+def test_adaptive_window_skips_exact_backend_for_large_default_formula():
+    result = simulate_profiles(
+        ["C500H800N125O200S10"],
+        elements=["C", "H", "N", "O", "S"],
+        window_mode="auto",
+        auto_grid=True,
+        min_fft_len=255,
+        method="log_pruned",
+        storage_mode="research",
+    )
+    metadata = result["metadata"]
+
+    assert metadata["requested_window_mode"] == "auto"
+    assert metadata["window_mode"] == "adaptive"
+    assert metadata["auto_window_method"] == "sigma"
+    assert metadata["profile_backend"] == "ft"
+    assert "exact_state_counts" not in metadata
+
+
 def test_cli_auto_grid_reduces_single_atom_ringing(capsys):
     assert main(
         [

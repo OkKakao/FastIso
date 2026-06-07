@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-119 passed, 6 skipped
+120 passed, 6 skipped
 ```
 
 ## Installation

@@ -21,6 +21,12 @@ from .isotopes import (
 from .log_table import CenteredLogPhaseTable, has_cython_backend
 
 
+# Exact state enumeration is a small-formula display path; large formulas should
+# stay on the FT/CZT backend even when exact support would be possible.
+_EXACT_PROFILE_MAX_ATOMS = 64
+_EXACT_PROFILE_MAX_STATE_POINT_PRODUCT = 8_000_000
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -585,6 +591,8 @@ def _exact_gaussian_window_many_counts(
     probability_cutoff: float,
     max_states: int,
 ) -> tuple[np.ndarray, np.ndarray, dict[str, Any]] | None:
+    if not _can_try_exact_states(counts):
+        return None
     sigma = _sigma_vector(gaussian_sigma, counts.shape[0])
     if sigma is None or np.any(sigma <= 0.0):
         return None
@@ -613,7 +621,7 @@ def _exact_gaussian_window_many_counts(
         states_by_row.append(states)
         state_counts.append(len(states))
         probability_sums.append(float(sum(states.values())))
-    if sum(state_counts) * output_axis.shape[0] > 20_000_000:
+    if sum(state_counts) * output_axis.shape[0] > _EXACT_PROFILE_MAX_STATE_POINT_PRODUCT:
         return None
 
     profiles = np.zeros((counts.shape[0], output_axis.shape[0]), dtype=np.float64)
@@ -723,6 +731,8 @@ def _exact_support_residual_window(
     probability_cutoff: float,
     max_states: int,
 ) -> tuple[float, float] | None:
+    if not _can_try_exact_states(counts):
+        return None
     starts: list[float] = []
     stops: list[float] = []
     for row_idx, row_counts in enumerate(counts):
@@ -767,6 +777,8 @@ def _exact_states_for_count_row(
     probability_cutoff: float,
     max_states: int,
 ) -> dict[float, float] | None:
+    if not _can_try_exact_states(counts):
+        return None
     states = {0.0: 1.0}
     for element_idx, count in enumerate(counts):
         atom_count = int(count)
@@ -795,6 +807,16 @@ def _exact_states_for_count_row(
             if len(states) > max_states:
                 return None
     return states
+
+
+def _can_try_exact_states(counts: np.ndarray) -> bool:
+    counts_array = np.asarray(counts, dtype=np.int64)
+    if counts_array.ndim == 1:
+        return int(np.sum(counts_array)) <= _EXACT_PROFILE_MAX_ATOMS
+    if counts_array.size == 0:
+        return True
+    row_atom_counts = np.sum(counts_array, axis=1)
+    return bool(np.max(row_atom_counts) <= _EXACT_PROFILE_MAX_ATOMS)
 
 
 def _sigma_vector(
