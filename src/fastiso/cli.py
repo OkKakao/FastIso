@@ -105,16 +105,21 @@ def _add_profile_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_window_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--start", type=float, required=True, help="window start")
-    parser.add_argument("--stop", type=float, required=True, help="window stop")
+    parser.add_argument("--start", type=float, default=None, help="window start")
+    parser.add_argument("--stop", type=float, default=None, help="window stop")
     parser.add_argument(
         "--window-mode",
-        choices=("residual", "mass"),
+        choices=("residual", "mass", "adaptive"),
         default="residual",
-        help="residual window is relative to formula mean mass; mass is absolute",
+        help=(
+            "residual is relative to formula mean mass; mass is absolute; "
+            "adaptive chooses a residual window from profile sigma"
+        ),
     )
     parser.add_argument("--output-dm", type=float, default=None)
     parser.add_argument("--points", type=int, default=None)
+    parser.add_argument("--auto-window-sigma", type=float, default=6.0)
+    parser.add_argument("--auto-window-min-half-width", type=float, default=0.1)
 
 
 def _run_simulate(args: argparse.Namespace) -> int:
@@ -155,6 +160,8 @@ def _run_window(args: argparse.Namespace) -> int:
         stop=args.stop,
         output_dm=args.output_dm,
         points=args.points,
+        auto_window_sigma=args.auto_window_sigma,
+        auto_window_min_half_width=args.auto_window_min_half_width,
     )
     _write_profile_result(result, output_format=args.format, output_path=args.output)
     return 0
@@ -241,13 +248,17 @@ def simulate_profiles(
     stop: float | None = None,
     output_dm: float | None = None,
     points: int | None = None,
+    auto_window_sigma: float = 6.0,
+    auto_window_min_half_width: float = 0.1,
 ) -> dict[str, Any]:
     if resolving_power is None and gaussian_sigma is None:
         resolving_power = 100_000.0
     if resolving_power is not None and gaussian_sigma is not None:
         raise ValueError("Pass either resolving_power or gaussian_sigma, not both")
-    if window_mode is not None and (start is None or stop is None):
+    if window_mode in {"residual", "mass"} and (start is None or stop is None):
         raise ValueError("window start/stop are required")
+    if window_mode == "adaptive" and (start is not None or stop is not None):
+        raise ValueError("adaptive window mode does not accept start/stop")
     registry = load_isotope_registry(_resource_for_request(preset, resource))
     selected_elements = tuple(elements) if elements is not None else registry.elements_for_preset(preset)
     components = [
@@ -288,6 +299,11 @@ def simulate_profiles(
         isotope_data_version=registry.version,
     )
     selected_method = _resolve_method(method)
+    actual_window_start = start
+    actual_window_stop = stop
+    window_output_dm = output_dm
+    if window_mode is not None and window_output_dm is None and points is None:
+        window_output_dm = dm
     if window_mode is None:
         mass_axis, profiles, info = table.mass_profile_many_counts(
             counts,
@@ -300,7 +316,25 @@ def simulate_profiles(
             counts,
             residual_start=float(start),
             residual_stop=float(stop),
-            output_dm=output_dm,
+            output_dm=window_output_dm,
+            n_points=points,
+            method=selected_method,
+            gaussian_sigma=effective_sigma,
+            workers=workers,
+        )
+    elif window_mode == "adaptive":
+        actual_window_start, actual_window_stop = _adaptive_residual_window(
+            table,
+            counts,
+            gaussian_sigma=effective_sigma,
+            auto_window_sigma=auto_window_sigma,
+            min_half_width=auto_window_min_half_width,
+        )
+        mass_axis, profiles, info = table.mass_profile_window_many_counts(
+            counts,
+            residual_start=actual_window_start,
+            residual_stop=actual_window_stop,
+            output_dm=window_output_dm,
             n_points=points,
             method=selected_method,
             gaussian_sigma=effective_sigma,
@@ -317,7 +351,7 @@ def simulate_profiles(
                 counts[row_idx : row_idx + 1],
                 mass_start=float(shifted_start[row_idx]),
                 mass_stop=float(shifted_stop[row_idx]),
-                output_dm=output_dm,
+                output_dm=window_output_dm,
                 n_points=points,
                 method=selected_method,
                 gaussian_sigma=_row_gaussian_sigma(effective_sigma, row_idx),
@@ -363,10 +397,13 @@ def simulate_profiles(
         metadata.update(
             {
                 "window_mode": window_mode,
-                "window_start": float(start),
-                "window_stop": float(stop),
+                "window_start": float(actual_window_start),
+                "window_stop": float(actual_window_stop),
             }
         )
+        if window_mode == "adaptive":
+            metadata["auto_window_sigma"] = float(auto_window_sigma)
+            metadata["auto_window_min_half_width"] = float(auto_window_min_half_width)
     return {
         "formulas": list(formulas),
         "mass_axis": mass_axis,
@@ -440,6 +477,27 @@ def _sigma_from_resolving_power(mean_mass: np.ndarray, resolving_power: float) -
         raise ValueError("resolving_power must be positive")
     fwhm = np.asarray(mean_mass, dtype=np.float64) / float(resolving_power)
     return fwhm / (2.0 * sqrt(2.0 * log(2.0)))
+
+
+def _adaptive_residual_window(
+    table: CenteredLogPhaseTable,
+    counts: np.ndarray,
+    *,
+    gaussian_sigma: float | np.ndarray | None,
+    auto_window_sigma: float,
+    min_half_width: float,
+) -> tuple[float, float]:
+    if auto_window_sigma <= 0.0:
+        raise ValueError("auto_window_sigma must be positive")
+    if min_half_width < 0.0:
+        raise ValueError("auto_window_min_half_width must be non-negative")
+    profile_sigma = table.profile_sigma_many_counts(
+        counts,
+        gaussian_sigma=gaussian_sigma,
+    )
+    half_width = float(np.max(profile_sigma) * float(auto_window_sigma))
+    half_width = max(half_width, float(min_half_width), table.dm)
+    return -half_width, half_width
 
 
 def _row_gaussian_sigma(

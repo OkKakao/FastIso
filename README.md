@@ -50,7 +50,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-114 passed, 6 skipped
+115 passed, 6 skipped
 ```
 
 ## Installation
@@ -136,6 +136,22 @@ the output spacing:
 By default, profile commands use resolving power 100,000. Pass
 `--gaussian-sigma` instead when a fixed Gaussian sigma in mass units is desired.
 
+For small or skewed formulas, a mean-centered fixed residual window can miss the
+largest peak. Use adaptive mode to choose a residual window from the estimated
+profile sigma:
+
+```powershell
+.\.venv\Scripts\fastiso window S10 `
+  --elements S `
+  --window-mode adaptive `
+  --dm 0.002 `
+  --output-dm 0.002
+```
+
+Adaptive mode solves the window placement problem. Very narrow peaks may still
+need a smaller `--dm` or larger `--gaussian-sigma` to avoid sinc-like ringing in
+the sampled dense profile.
+
 Bracketed formula groups are supported by the shared parser. Quote bracketed
 formulas in shells:
 
@@ -163,7 +179,9 @@ or:
 ```
 
 The GUI accepts the same formula syntax as the CLI, including adjacent and
-nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`.
+nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Choose the
+`adaptive` mode when the main isotope envelope is not centered near the mean
+mass.
 
 ## CZT Windowed Profiles
 

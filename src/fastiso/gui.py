@@ -69,6 +69,8 @@ class FastIsoGui:
         self.method_var = tk.StringVar(value="cython_auto")
         self.storage_var = tk.StringVar(value="auto")
         self.workers_var = tk.StringVar(value="")
+        self.auto_window_sigma_var = tk.StringVar(value="6.0")
+        self.auto_window_min_half_width_var = tk.StringVar(value="0.1")
         self.output_format_var = tk.StringVar(value="csv")
         self.status_var = tk.StringVar(value="Ready")
 
@@ -103,7 +105,7 @@ class FastIsoGui:
         mode = ttk.Combobox(
             controls,
             textvariable=self.mode_var,
-            values=("residual", "mass", "full"),
+            values=("residual", "mass", "adaptive", "full"),
             state="readonly",
             width=34,
         )
@@ -162,6 +164,20 @@ class FastIsoGui:
         row += 1
 
         row = self._add_entry(controls, row, "Workers", self.workers_var, width=36)
+        row = self._add_entry(
+            controls,
+            row,
+            "Auto window sigma",
+            self.auto_window_sigma_var,
+            width=36,
+        )
+        row = self._add_entry(
+            controls,
+            row,
+            "Auto min half-width",
+            self.auto_window_min_half_width_var,
+            width=36,
+        )
 
         ttk.Separator(controls).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
         row += 1
@@ -252,15 +268,13 @@ class FastIsoGui:
         return entry
 
     def _sync_mode_state(self) -> None:
-        enabled = self.mode_var.get() != "full"
-        state = "normal" if enabled else "disabled"
-        for entry in (
-            self.start_entry,
-            self.stop_entry,
-            self.output_dm_entry,
-            self.points_entry,
-        ):
-            entry.configure(state=state)
+        mode = self.mode_var.get()
+        start_stop_state = "normal" if mode in {"residual", "mass"} else "disabled"
+        output_state = "normal" if mode != "full" else "disabled"
+        self.start_entry.configure(state=start_stop_state)
+        self.stop_entry.configure(state=start_stop_state)
+        self.output_dm_entry.configure(state=output_state)
+        self.points_entry.configure(state=output_state)
 
     def parse_preview(self) -> None:
         try:
@@ -371,14 +385,19 @@ class FastIsoGui:
             "workers": _optional_int(self.workers_var.get(), "Workers"),
         }
         if mode != "full":
-            settings.update(
-                {
-                    "window_mode": mode,
-                    "start": _required_float(self.start_var.get(), "Start"),
-                    "stop": _required_float(self.stop_var.get(), "Stop"),
-                    "output_dm": _optional_float(self.output_dm_var.get(), "Output dm"),
-                    "points": _optional_int(self.points_var.get(), "Points"),
-                }
+            settings["window_mode"] = mode
+            if mode in {"residual", "mass"}:
+                settings["start"] = _required_float(self.start_var.get(), "Start")
+                settings["stop"] = _required_float(self.stop_var.get(), "Stop")
+            settings["output_dm"] = _optional_float(self.output_dm_var.get(), "Output dm")
+            settings["points"] = _optional_int(self.points_var.get(), "Points")
+            settings["auto_window_sigma"] = _required_float(
+                self.auto_window_sigma_var.get(),
+                "Auto window sigma",
+            )
+            settings["auto_window_min_half_width"] = _required_float(
+                self.auto_window_min_half_width_var.get(),
+                "Auto min half-width",
             )
             if settings["output_dm"] is None and settings["points"] is None:
                 raise ValueError("Pass Output dm or Points for window mode")
@@ -423,6 +442,12 @@ class FastIsoGui:
             f"points: {metadata['n_points']}",
             f"table memory: {metadata['table_nbytes']} bytes",
         ]
+        if "window_mode" in metadata:
+            lines.append(
+                "window: "
+                f"{metadata['window_mode']} "
+                f"[{metadata['window_start']:.6g}, {metadata['window_stop']:.6g}]"
+            )
         self._set_text(self.summary_text, "\n".join(lines))
 
     def _draw_plot(self) -> None:

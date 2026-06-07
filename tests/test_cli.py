@@ -140,6 +140,44 @@ def test_cli_accepts_bracketed_formula_expression(capsys):
     assert payload["metadata"]["spectral_elements"] == ["C", "H", "O", "Cl"]
 
 
+def test_cli_adaptive_window_includes_skewed_small_formula_base_peak(capsys):
+    assert main(
+        [
+            "window",
+            "S10",
+            "--elements",
+            "S",
+            "--window-mode",
+            "adaptive",
+            "--dm",
+            "0.05",
+            "--min-fft-len",
+            "255",
+            "--method",
+            "log_pruned",
+            "--storage-mode",
+            "research",
+            "--format",
+            "json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    metadata = payload["metadata"]
+    mean_mass = metadata["total_mean_masses"][0]
+    residual_axis = [mass - mean_mass for mass in payload["mass_axis"][0]]
+    max_idx = max(
+        range(len(payload["intensity"][0])),
+        key=lambda idx: payload["intensity"][0][idx],
+    )
+
+    assert metadata["window_mode"] == "adaptive"
+    assert metadata["window_start"] < -0.928
+    assert metadata["window_stop"] > 1.068
+    assert residual_axis[max_idx] == pytest.approx(-0.928, abs=0.05)
+    assert metadata["output_dm"] == pytest.approx(0.05)
+
+
 def test_cli_gaussian_sigma_disables_default_resolving_power(capsys):
     assert main(
         [
