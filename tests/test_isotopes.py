@@ -35,6 +35,7 @@ COMMON_ELEMENTS = (
     "Br",
     "I",
 )
+FULL_EXCLUDED_ELEMENTS = {"E", "Me", "Pn", "Bi", "Th", "Pa", "U", "Nh"}
 
 
 def test_common_registry_loads_versioned_dataset():
@@ -54,10 +55,25 @@ def test_load_isotope_patterns_supports_presets_and_explicit_elements():
     bio = load_isotope_patterns(preset="bio")
     halogen = load_isotope_patterns(preset="halogen")
     explicit = load_isotope_patterns(elements=("C", "Na", "Ni"))
+    full = load_isotope_patterns(preset="full")
 
     assert {"C", "H", "N", "O", "P", "S"}.issubset(bio)
     assert set(halogen) == {"F", "Cl", "Br", "I"}
     assert set(explicit) == {"C", "Na", "Ni"}
+    assert len(full) == 80
+    assert {"H", "He", "Xe", "Pb"}.issubset(full)
+    assert FULL_EXCLUDED_ELEMENTS.isdisjoint(full)
+
+
+def test_full_registry_loads_stable_element_dataset():
+    registry = load_isotope_registry(resource="full")
+
+    assert registry.version == "full-stable-elements-isospecpy-prototype-v1"
+    assert "stable-element natural-abundance dataset" in registry.source
+    assert len(registry.patterns) == 80
+    assert registry.presets["full"] == tuple(registry.patterns)
+    assert {"H", "He", "Be", "Xe", "Pb"}.issubset(registry.patterns)
+    assert FULL_EXCLUDED_ELEMENTS.isdisjoint(registry.patterns)
 
 
 def test_common_isotope_patterns_are_normalized_and_ordered():
@@ -84,6 +100,20 @@ def test_common_isotope_patterns_match_isospecpy_source_when_available():
 
     for element in COMMON_ELEMENTS:
         pattern = registry.patterns[element]
+        expected_masses = np.asarray(table.symbol_to_masses[element], dtype=np.float64)
+        expected_probs = np.asarray(table.symbol_to_probs[element], dtype=np.float64)
+        expected_probs = expected_probs / expected_probs.sum()
+
+        np.testing.assert_allclose(pattern.masses, expected_masses, rtol=0.0, atol=0.0)
+        np.testing.assert_allclose(pattern.abundances, expected_probs, rtol=1e-15, atol=1e-15)
+
+
+def test_full_isotope_patterns_match_isospecpy_source_when_available():
+    isospecpy = pytest.importorskip("IsoSpecPy")
+    registry = load_isotope_registry(resource="full")
+    table = isospecpy.PeriodicTbl
+
+    for element, pattern in registry.patterns.items():
         expected_masses = np.asarray(table.symbol_to_masses[element], dtype=np.float64)
         expected_probs = np.asarray(table.symbol_to_probs[element], dtype=np.float64)
         expected_probs = expected_probs / expected_probs.sum()

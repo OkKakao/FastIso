@@ -133,6 +133,42 @@ def test_simulate_window_supports_all_mass_only_formula():
     assert response["summary"]["apex_intensity"] > 0.0
 
 
+def test_simulate_window_full_preset_uses_full_isotope_resource():
+    _TABLE_CACHE.clear()
+
+    response = simulate_window({
+        "formula": "Xe2Pb",
+        "preset": "full",
+        "table_dm": 0.01,
+        "min_fft_len": 2048,
+        "gaussian_sigma": 0.002,
+        "window": {"mode": "residual", "start": -0.1, "stop": 0.1},
+        "output_dm": 0.01,
+        "method": "log_pruned",
+    })
+
+    assert response["preset"] == "full"
+    assert response["metadata"]["isotope_resource"] == "full"
+    assert response["metadata"]["isotope_data_version"] == (
+        "full-stable-elements-isospecpy-prototype-v1"
+    )
+    assert response["elements"] == ["Xe", "Pb"]
+    assert response["summary"]["apex_intensity"] > 0.0
+
+
+def test_simulate_window_full_preset_rejects_no_stable_element():
+    with pytest.raises(ValueError, match="missing"):
+        simulate_window({
+            "formula": "Bi",
+            "preset": "full",
+            "table_dm": 0.01,
+            "min_fft_len": 2048,
+            "window": {"mode": "residual", "start": -0.1, "stop": 0.1},
+            "output_dm": 0.01,
+            "method": "log_pruned",
+        })
+
+
 def test_fastapi_simulate_window_endpoint_when_available():
     try:
         from fastapi.testclient import TestClient

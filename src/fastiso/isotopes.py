@@ -149,11 +149,11 @@ def load_isotope_patterns(
     *,
     preset: str = "common",
     elements: Sequence[str] | None = None,
-    resource: str = "common",
+    resource: str | None = None,
 ) -> dict[str, IsotopePattern]:
     """Load normalized isotope patterns for a preset or explicit element list."""
 
-    registry = load_isotope_registry(resource)
+    registry = load_isotope_registry(_default_resource_for_request(preset, resource))
     return registry.isotope_patterns(preset=preset, elements=elements)
 
 
@@ -167,6 +167,14 @@ def isotope_data_version(resource: str = "common") -> str:
     """Return the version string for a packaged isotope dataset."""
 
     return load_isotope_registry(resource).version
+
+
+def _default_resource_for_request(preset: str, resource: str | None) -> str:
+    if resource is not None:
+        return resource
+    if preset == "full":
+        return "full"
+    return "common"
 
 
 def split_formula_isotope_components(

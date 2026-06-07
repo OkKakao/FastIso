@@ -38,7 +38,7 @@ def simulate_window(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("Pass either resolving_power or gaussian_sigma, not both")
     output_dm = float(payload.get("output_dm", table_dm))
     method = _resolve_method(str(payload.get("method") or "cython_auto"))
-    resource = str(payload.get("isotope_resource") or "common")
+    resource = str(payload.get("isotope_resource") or ("full" if preset == "full" else "common"))
     safety_sigma = float(payload.get("safety_sigma", 6.0))
     storage_mode = _storage_mode_for_method(method)
     workers = _optional_int(payload.get("workers"))
@@ -150,6 +150,7 @@ def simulate_window(payload: Mapping[str, Any]) -> dict[str, Any]:
             ),
             "resolving_power": resolving_power,
             "isotope_data_version": table.isotope_data_version,
+            "isotope_resource": resource,
             "cache_key": table.cache_key.as_dict(),
         },
     }

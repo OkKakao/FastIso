@@ -118,6 +118,7 @@ window samples. Integer table-grid samples match the full profile path.
 FastIso loads versioned isotope data from packaged JSON resources:
 
 - `src/fastiso/isotope_data/common.json`
+- `src/fastiso/isotope_data/full.json`
 - source metadata and version are stored with the data resource;
 - presets: `bio`, `organic`, `halogen`, `adduct`, `common`, `full`.
 
@@ -131,11 +132,17 @@ Single-isotope elements are treated as deterministic mass shifts instead of FT
 table rows. For example, F, Na, Al, P, and I shift the returned mass axis but do
 not increase spectral table size.
 
+The `full` preset loads `full.json` and covers 80 real elements with at least
+one stable isotope. Pseudo symbols and elements with no stable isotope, such as
+Bi, Th, Pa, U, and synthetic unstable elements, are excluded. Isotope rows use
+the natural-abundance values from the packaged source dataset.
+
 ```python
 from fastiso import load_isotope_patterns, load_isotope_registry
 
 registry = load_isotope_registry()
 patterns = load_isotope_patterns(preset="common")
+full_patterns = load_isotope_patterns(preset="full")
 ```
 
 ## Server Prototype
