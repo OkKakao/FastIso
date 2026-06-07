@@ -5,6 +5,8 @@ pytest.importorskip("tkinter")
 
 from fastiso.cli import simulate_profiles
 from fastiso.gui import (
+    _label_peak_indices,
+    _max_normalized_intensity,
     _resolving_power_from_sigma,
     _sigma_from_resolving_power,
     _single_formula_mean_mass,
@@ -35,6 +37,26 @@ def test_gui_plot_downsampling_keeps_sulfur_isotope_peaks():
     assert plot_mass.size < mass_axis.size
     for target in _SULFUR_ISOTOPE_MASSES:
         assert np.any(np.abs(plot_mass - target) < 0.001)
+
+
+def test_gui_plot_uses_max_normalized_display_values():
+    _mass_axis, intensity = _sulfur_profile()
+
+    display = _max_normalized_intensity(intensity)
+
+    assert np.max(display) == pytest.approx(1.0)
+    assert np.sum(display) > 1.0
+
+
+def test_gui_peak_labels_include_sulfur_isotope_peaks():
+    mass_axis, intensity = _sulfur_profile()
+    display = _max_normalized_intensity(intensity)
+
+    indices = _label_peak_indices(mass_axis, display, max_labels=4)
+    selected_masses = mass_axis[indices]
+
+    for target in _SULFUR_ISOTOPE_MASSES:
+        assert np.any(np.abs(selected_masses - target) < 0.001)
 
 
 def test_gui_resolving_power_sigma_conversion_round_trips():

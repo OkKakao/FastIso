@@ -79,11 +79,17 @@ class FastIsoGui:
         self.auto_window_min_half_width_var = tk.StringVar(value="0.1")
         self.output_format_var = tk.StringVar(value="csv")
         self.status_var = tk.StringVar(value="Ready")
+        self.show_peak_labels_var = tk.BooleanVar(value=True)
 
         self.result: dict[str, Any] | None = None
         self._worker: threading.Thread | None = None
         self._broadening_source = "rp"
         self._syncing_broadening = False
+        self._plot_x_zoom = 1.0
+        self._plot_y_zoom = 1.0
+        self._plot_x_center: float | None = None
+        self._plot_hover_tag = "plot-hover"
+        self._plot_points: list[dict[str, float]] = []
 
         self._install_broadening_traces()
         self._build_ui()
@@ -271,12 +277,44 @@ class FastIsoGui:
         yscroll.grid(row=3, column=1, sticky="ns")
         self.preview.configure(yscrollcommand=yscroll.set)
 
-        self.plot = tk.Canvas(output, height=230, background="white", highlightthickness=1)
-        self.plot.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        plot_tools = ttk.Frame(output)
+        plot_tools.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        ttk.Button(plot_tools, text="X-", width=4, command=lambda: self._zoom_plot("x", 0.5)).pack(
+            side="left",
+            padx=(0, 4),
+        )
+        ttk.Button(plot_tools, text="X+", width=4, command=lambda: self._zoom_plot("x", 2.0)).pack(
+            side="left",
+            padx=(0, 8),
+        )
+        ttk.Button(plot_tools, text="Y-", width=4, command=lambda: self._zoom_plot("y", 0.5)).pack(
+            side="left",
+            padx=(0, 4),
+        )
+        ttk.Button(plot_tools, text="Y+", width=4, command=lambda: self._zoom_plot("y", 2.0)).pack(
+            side="left",
+            padx=(0, 8),
+        )
+        ttk.Button(plot_tools, text="Reset", width=7, command=self._reset_plot_view).pack(
+            side="left",
+            padx=(0, 12),
+        )
+        ttk.Checkbutton(
+            plot_tools,
+            text="Peak labels",
+            variable=self.show_peak_labels_var,
+            command=self._draw_plot,
+        ).pack(side="left")
+
+        self.plot = tk.Canvas(output, height=320, background="white", highlightthickness=1)
+        self.plot.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(4, 0))
         self.plot.bind("<Configure>", lambda _event: self._draw_plot())
+        self.plot.bind("<Motion>", self._on_plot_motion)
+        self.plot.bind("<Leave>", lambda _event: self._hide_plot_tooltip())
+        self.plot.bind("<MouseWheel>", self._on_plot_wheel)
 
         self.summary_text = tk.Text(output, height=8, wrap="word")
-        self.summary_text.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        self.summary_text.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(10, 0))
 
     def _add_entry(
         self,
@@ -421,6 +459,7 @@ class FastIsoGui:
         self.run_button.configure(state="normal")
         self.save_button.configure(state="normal")
         self.status_var.set("Simulation complete")
+        self._reset_plot_view(redraw=False)
         self._render_result(result)
 
     def save_result(self) -> None:
@@ -543,6 +582,7 @@ class FastIsoGui:
             f"resolving power: {metadata.get('resolving_power')}",
             f"effective sigma: {_format_numeric_metadata(metadata.get('gaussian_sigma'))}",
             f"normalization: {metadata.get('normalization', 'none')}",
+            "plot normalization: max",
             f"profile sum: {_format_numeric_metadata(metadata.get('profile_sums'))}",
             f"profile max: {_format_numeric_metadata(metadata.get('profile_maxima'))}",
             f"n_fft: {metadata['n_fft']}",
@@ -565,10 +605,20 @@ class FastIsoGui:
 
     def _draw_plot(self) -> None:
         self.plot.delete("all")
+        self._plot_points = []
         width = max(self.plot.winfo_width(), 2)
         height = max(self.plot.winfo_height(), 2)
-        pad = 28
-        self.plot.create_rectangle(pad, 12, width - 12, height - pad, outline="#b0b0b0")
+        left_pad = 58
+        right_pad = 14
+        top_pad = 18
+        bottom_pad = 36
+        self.plot.create_rectangle(
+            left_pad,
+            top_pad,
+            width - right_pad,
+            height - bottom_pad,
+            outline="#b0b0b0",
+        )
         if self.result is None:
             return
 
@@ -583,27 +633,194 @@ class FastIsoGui:
         y = y[finite]
         if x.size < 2:
             return
-        x, y = _profile_plot_points(x, y, max_points=1500)
-        x_min = float(np.min(x))
-        x_max = float(np.max(x))
-        y_min = float(np.min(y))
-        y_max = float(np.max(y))
-        if x_max == x_min:
-            x_max = x_min + 1.0
-        if y_max == y_min:
+        y_display = _max_normalized_intensity(y)
+        x_min, x_max = self._plot_x_bounds(x)
+        visible = (x >= x_min) & (x <= x_max)
+        if not np.any(visible):
+            return
+        visible_x = x[visible]
+        visible_y = y_display[visible]
+        visible_raw = y[visible]
+        plot_x, plot_y, plot_raw = _profile_plot_points_with_raw(
+            visible_x,
+            visible_y,
+            visible_raw,
+            max_points=2200,
+        )
+        y_min = min(0.0, float(np.min(visible_y)))
+        y_max = max(1.0 / self._plot_y_zoom, float(np.max(visible_y)) if self._plot_y_zoom < 1.0 else 0.0)
+        if y_max <= y_min:
             y_max = y_min + 1.0
-        plot_w = width - pad - 12
-        plot_h = height - pad - 12
+        plot_w = width - left_pad - right_pad
+        plot_h = height - top_pad - bottom_pad
         coords: list[float] = []
-        for x_val, y_val in zip(x, y):
-            px = pad + (float(x_val) - x_min) / (x_max - x_min) * plot_w
-            py = 12 + (1.0 - (float(y_val) - y_min) / (y_max - y_min)) * plot_h
+        for x_val, y_val, raw_val in zip(plot_x, plot_y, plot_raw):
+            px = left_pad + (float(x_val) - x_min) / (x_max - x_min) * plot_w
+            py = top_pad + (1.0 - (float(y_val) - y_min) / (y_max - y_min)) * plot_h
+            py = min(max(py, top_pad), height - bottom_pad)
             coords.extend((px, py))
+            self._plot_points.append(
+                {
+                    "px": px,
+                    "py": py,
+                    "mass": float(x_val),
+                    "norm": float(y_val),
+                    "raw": float(raw_val),
+                }
+            )
         if len(coords) >= 4:
             self.plot.create_line(*coords, fill="#1f6feb", width=2)
         if y_min <= 0.0 <= y_max:
-            baseline = 12 + (1.0 - (0.0 - y_min) / (y_max - y_min)) * plot_h
-            self.plot.create_line(pad, baseline, width - 12, baseline, fill="#808080")
+            baseline = top_pad + (1.0 - (0.0 - y_min) / (y_max - y_min)) * plot_h
+            self.plot.create_line(left_pad, baseline, width - right_pad, baseline, fill="#808080")
+        self._draw_plot_axes(
+            left_pad,
+            top_pad,
+            width - right_pad,
+            height - bottom_pad,
+            x_min,
+            x_max,
+            y_min,
+            y_max,
+        )
+        if self.show_peak_labels_var.get():
+            self._draw_peak_labels(visible_x, visible_y, left_pad, top_pad, plot_w, plot_h, x_min, x_max, y_min, y_max)
+
+    def _plot_x_bounds(self, x: np.ndarray) -> tuple[float, float]:
+        full_min = float(np.min(x))
+        full_max = float(np.max(x))
+        if full_max == full_min:
+            return full_min - 0.5, full_max + 0.5
+        center = self._plot_x_center
+        if center is None:
+            center = 0.5 * (full_min + full_max)
+        half_width = 0.5 * (full_max - full_min) / self._plot_x_zoom
+        start = max(full_min, center - half_width)
+        stop = min(full_max, center + half_width)
+        if start == full_min:
+            stop = min(full_max, start + 2.0 * half_width)
+        if stop == full_max:
+            start = max(full_min, stop - 2.0 * half_width)
+        if stop <= start:
+            stop = start + 1.0
+        self._plot_x_center = 0.5 * (start + stop)
+        return start, stop
+
+    def _draw_plot_axes(
+        self,
+        x0: int,
+        y0: int,
+        x1: int,
+        y1: int,
+        x_min: float,
+        x_max: float,
+        y_min: float,
+        y_max: float,
+    ) -> None:
+        self.plot.create_text(x0, y1 + 18, text=_format_float(x_min), anchor="w", fill="#505050")
+        self.plot.create_text(x1, y1 + 18, text=_format_float(x_max), anchor="e", fill="#505050")
+        self.plot.create_text((x0 + x1) / 2, y1 + 18, text="mass", anchor="center", fill="#505050")
+        self.plot.create_text(x0 - 8, y0, text=_format_float(y_max), anchor="e", fill="#505050")
+        self.plot.create_text(x0 - 8, y1, text=_format_float(y_min), anchor="e", fill="#505050")
+        self.plot.create_text(x0 - 42, (y0 + y1) / 2, text="max norm", anchor="center", angle=90, fill="#505050")
+
+    def _draw_peak_labels(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        x0: int,
+        y0: int,
+        plot_w: int,
+        plot_h: int,
+        x_min: float,
+        x_max: float,
+        y_min: float,
+        y_max: float,
+    ) -> None:
+        peak_indices = _label_peak_indices(x, y, max_labels=12)
+        used_px: list[float] = []
+        for index in peak_indices:
+            x_val = float(x[index])
+            y_val = float(y[index])
+            px = x0 + (x_val - x_min) / (x_max - x_min) * plot_w
+            if any(abs(px - prev) < 36 for prev in used_px):
+                continue
+            py = y0 + (1.0 - (y_val - y_min) / (y_max - y_min)) * plot_h
+            py = min(max(py, y0), y0 + plot_h)
+            self.plot.create_line(px, py, px, max(y0, py - 10), fill="#606060")
+            self.plot.create_text(
+                px + 3,
+                max(y0 + 6, py - 14),
+                text=_format_float(x_val),
+                anchor="w",
+                fill="#303030",
+                font=("TkDefaultFont", 8),
+            )
+            used_px.append(px)
+
+    def _zoom_plot(self, axis: str, factor: float) -> None:
+        if axis == "x":
+            self._plot_x_zoom = min(256.0, max(1.0, self._plot_x_zoom * float(factor)))
+        elif axis == "y":
+            self._plot_y_zoom = min(1024.0, max(0.125, self._plot_y_zoom * float(factor)))
+        self._draw_plot()
+
+    def _reset_plot_view(self, *, redraw: bool = True) -> None:
+        self._plot_x_zoom = 1.0
+        self._plot_y_zoom = 1.0
+        self._plot_x_center = None
+        self._hide_plot_tooltip()
+        if redraw:
+            self._draw_plot()
+
+    def _on_plot_wheel(self, event: tk.Event) -> None:
+        factor = 1.25 if event.delta > 0 else 0.8
+        axis = "y" if event.state & 0x0001 else "x"
+        self._zoom_plot(axis, factor)
+
+    def _on_plot_motion(self, event: tk.Event) -> None:
+        if not self._plot_points:
+            return
+        nearest = min(
+            self._plot_points,
+            key=lambda point: (point["px"] - event.x) ** 2 + (point["py"] - event.y) ** 2,
+        )
+        distance2 = (nearest["px"] - event.x) ** 2 + (nearest["py"] - event.y) ** 2
+        if distance2 > 144:
+            self._hide_plot_tooltip()
+            return
+        self._show_plot_tooltip(event.x, event.y, nearest)
+
+    def _show_plot_tooltip(self, x: int, y: int, point: dict[str, float]) -> None:
+        self._hide_plot_tooltip()
+        text = (
+            f"mass {point['mass']:.8f}\n"
+            f"max norm {point['norm']:.6g}\n"
+            f"raw {point['raw']:.6g}"
+        )
+        item = self.plot.create_text(
+            x + 12,
+            y - 12,
+            text=text,
+            anchor="sw",
+            fill="#111111",
+            tags=self._plot_hover_tag,
+        )
+        bbox = self.plot.bbox(item)
+        if bbox is not None:
+            rect = self.plot.create_rectangle(
+                bbox[0] - 4,
+                bbox[1] - 3,
+                bbox[2] + 4,
+                bbox[3] + 3,
+                fill="#fff8c5",
+                outline="#c8a600",
+                tags=self._plot_hover_tag,
+            )
+            self.plot.tag_lower(rect, item)
+
+    def _hide_plot_tooltip(self) -> None:
+        self.plot.delete(self._plot_hover_tag)
 
     def _clear_preview(self) -> None:
         for item in self.preview.get_children():
@@ -745,6 +962,52 @@ def _profile_plot_points(
         keep = np.linspace(0, ordered.size - 1, max_points, dtype=np.int64)
         ordered = ordered[keep]
     return mass_axis[ordered], intensity[ordered]
+
+
+def _profile_plot_points_with_raw(
+    mass_axis: np.ndarray,
+    display_intensity: np.ndarray,
+    raw_intensity: np.ndarray,
+    *,
+    max_points: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    selected_mass, selected_display = _profile_plot_points(
+        mass_axis,
+        display_intensity,
+        max_points=max_points,
+    )
+    indices = np.searchsorted(mass_axis, selected_mass)
+    indices = np.clip(indices, 0, raw_intensity.size - 1)
+    return selected_mass, selected_display, raw_intensity[indices]
+
+
+def _max_normalized_intensity(intensity: np.ndarray) -> np.ndarray:
+    y = np.asarray(intensity, dtype=np.float64)
+    if y.size == 0:
+        return y
+    finite = y[np.isfinite(y)]
+    if finite.size == 0:
+        return np.zeros_like(y)
+    maximum = float(np.max(finite))
+    if maximum == 0.0:
+        return np.zeros_like(y)
+    return y / maximum
+
+
+def _label_peak_indices(
+    mass_axis: np.ndarray,
+    intensity: np.ndarray,
+    *,
+    max_labels: int,
+) -> np.ndarray:
+    if max_labels <= 0 or mass_axis.size == 0:
+        return np.array([], dtype=np.int64)
+    local = _local_peak_indices(intensity)
+    if local.size == 0:
+        return np.array([], dtype=np.int64)
+    order = np.argsort(intensity[local])[::-1]
+    selected = local[order[:max_labels]]
+    return np.array(sorted(selected), dtype=np.int64)
 
 
 def _local_peak_indices(intensity: np.ndarray) -> np.ndarray:

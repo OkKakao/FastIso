@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-125 passed, 6 skipped
+127 passed, 6 skipped
 ```
 
 ## Installation
@@ -233,7 +233,11 @@ nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Its default
 `full` only when a complete dense profile is needed. The preview table and plot
 use peak-preserving display sampling so narrow small-formula isotope peaks are
 not hidden by dense output grids. The GUI also exposes the same `none`, `sum`,
-and `max` normalization modes.
+and `max` normalization modes. The plot itself is always shown with
+max-normalized display intensity for readability, independent of the saved
+output normalization. Use the X/Y zoom controls, mouse wheel for X zoom,
+Shift+mouse wheel for Y zoom, hover tooltips, and optional peak labels to inspect
+local peaks.
 
 ## CZT Windowed Profiles
 
