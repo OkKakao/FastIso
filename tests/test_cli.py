@@ -105,6 +105,41 @@ def test_cli_window_json_keeps_mass_only_elements_as_shifts(capsys):
     assert payload["mass_axis"][0] == pytest.approx([306.90, 306.92, 306.94])
 
 
+def test_cli_accepts_bracketed_formula_expression(capsys):
+    assert main(
+        [
+            "window",
+            "(CH3OH)2(HCl)2",
+            "--elements",
+            "C",
+            "H",
+            "O",
+            "Cl",
+            "--dm",
+            "0.01",
+            "--min-fft-len",
+            "255",
+            "--start",
+            "-0.01",
+            "--stop",
+            "0.01",
+            "--output-dm",
+            "0.01",
+            "--method",
+            "log_pruned",
+            "--storage-mode",
+            "research",
+            "--format",
+            "json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["formulas"] == ["(CH3OH)2(HCl)2"]
+    assert payload["metadata"]["spectral_elements"] == ["C", "H", "O", "Cl"]
+
+
 def test_cli_gaussian_sigma_disables_default_resolving_power(capsys):
     assert main(
         [

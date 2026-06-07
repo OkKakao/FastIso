@@ -27,6 +27,7 @@ Benchmarks = "https://github.com/OkKakao/FastIso/tree/main/benchmark_results"
 
 [project.scripts]
 fastiso = "fastiso.cli:main"
+fastiso-gui = "fastiso.gui:main"
 
 [project.optional-dependencies]
 dev = [

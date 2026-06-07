@@ -43,13 +43,14 @@ Implemented:
 - versioned isotope data registry and presets;
 - monoisotopic element mass-shift handling;
 - command-line interface;
+- portable Python tkinter GUI;
 - FastAPI prototype endpoint: `/simulate/window`;
 - benchmark scripts and saved benchmark outputs.
 
 Tested on the local development environment:
 
 ```text
-110 passed, 6 skipped
+114 passed, 6 skipped
 ```
 
 ## Installation
@@ -134,6 +135,35 @@ the output spacing:
 
 By default, profile commands use resolving power 100,000. Pass
 `--gaussian-sigma` instead when a fixed Gaussian sigma in mass units is desired.
+
+Bracketed formula groups are supported by the shared parser. Quote bracketed
+formulas in shells:
+
+```powershell
+.\.venv\Scripts\fastiso window "(CH3OH)2(HCl)2" `
+  --elements C H O Cl `
+  --start -0.5 `
+  --stop 0.5 `
+  --output-dm 0.001
+```
+
+## Portable Python GUI
+
+The lightweight GUI uses Python's standard `tkinter` package, so it can run
+without building an `.exe`:
+
+```powershell
+.\.venv\Scripts\fastiso-gui
+```
+
+or:
+
+```powershell
+.\.venv\Scripts\python -m fastiso.gui
+```
+
+The GUI accepts the same formula syntax as the CLI, including adjacent and
+nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`.
 
 ## CZT Windowed Profiles
 

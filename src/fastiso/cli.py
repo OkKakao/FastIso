@@ -71,7 +71,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _add_profile_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("formula", nargs="+", help="chemical formula, e.g. C6H12O6")
+    parser.add_argument(
+        "formula",
+        nargs="+",
+        help="chemical formula, e.g. C6H12O6 or '(CH3OH)2(HCl)2'",
+    )
     parser.add_argument("--preset", default="common", help="element preset")
     parser.add_argument("--resource", default=None, help="isotope data resource")
     parser.add_argument(

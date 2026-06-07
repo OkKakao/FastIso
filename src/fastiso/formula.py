@@ -8,22 +8,25 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
-_TOKEN_RE = re.compile(r"[A-Z][a-z]?|\(|\)|\d+")
+_TOKEN_RE = re.compile(r"[A-Z][a-z]?|[()\[\]{}]|\d+")
+_OPEN_TO_CLOSE = {"(": ")", "[": "]", "{": "}"}
+_CLOSING = frozenset(_OPEN_TO_CLOSE.values())
 
 
 def parse_formula(formula: str) -> dict[str, int]:
     """Parse a neutral chemical formula into integer element counts.
 
-    The parser supports nested parentheses, for example ``C6H5(CH3)`` and
-    ``(CH3)2O``. Charges, adduct notation, isotope labels, and decimal counts are
-    intentionally outside this first prototype.
+    The parser supports nested bracketed groups, for example ``C6H5(CH3)``,
+    ``(CH3)2O``, and ``(CH3OH)2(HCl)2``. The bracket pairs ``()``, ``[]``, and
+    ``{}`` are accepted. Charges, adduct notation, isotope labels, and decimal
+    counts are intentionally outside this first prototype.
     """
 
     if not isinstance(formula, str) or not formula:
         raise ValueError("formula must be a non-empty string")
 
     tokens = _tokenize(formula)
-    counts, position = _parse_group(tokens, 0)
+    counts, position = _parse_group(tokens, 0, closing=None)
     if position != len(tokens):
         raise ValueError(f"unexpected token {tokens[position]!r} in formula {formula!r}")
     return dict(counts)
@@ -61,16 +64,30 @@ def _tokenize(formula: str) -> list[str]:
     return tokens
 
 
-def _parse_group(tokens: Sequence[str], position: int) -> tuple[dict[str, int], int]:
+def _parse_group(
+    tokens: Sequence[str],
+    position: int,
+    *,
+    closing: str | None,
+) -> tuple[dict[str, int], int]:
     counts: defaultdict[str, int] = defaultdict(int)
     while position < len(tokens):
         token = tokens[position]
-        if token == ")":
+        if closing is not None and token == closing:
             break
-        if token == "(":
-            child, position = _parse_group(tokens, position + 1)
-            if position >= len(tokens) or tokens[position] != ")":
-                raise ValueError("unclosed parenthesis in formula")
+        if token in _CLOSING:
+            if closing is None:
+                raise ValueError(f"unexpected closing bracket {token!r}")
+            raise ValueError(f"expected closing bracket {closing!r}, got {token!r}")
+        if token in _OPEN_TO_CLOSE:
+            expected_closing = _OPEN_TO_CLOSE[token]
+            child, position = _parse_group(
+                tokens,
+                position + 1,
+                closing=expected_closing,
+            )
+            if position >= len(tokens) or tokens[position] != expected_closing:
+                raise ValueError(f"unclosed bracket {token!r} in formula")
             position += 1
             multiplier, position = _parse_multiplier(tokens, position)
             for element, count in child.items():
@@ -93,4 +110,3 @@ def _parse_multiplier(tokens: Sequence[str], position: int) -> tuple[int, int]:
             raise ValueError("formula multipliers must be positive")
         return multiplier, position + 1
     return 1, position
-
