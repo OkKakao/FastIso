@@ -1,6 +1,3 @@
-import json
-from importlib import resources
-
 import numpy as np
 import pytest
 
@@ -71,8 +68,8 @@ def test_load_isotope_patterns_supports_presets_and_explicit_elements():
 def test_full_registry_loads_stable_element_dataset():
     registry = load_isotope_registry(resource="full")
 
-    assert registry.version == "full-strict-stable-isotopes-isospecpy-iaea-prototype-v1"
-    assert "half_life == STABLE" in registry.source
+    assert registry.version == "full-natural-abundance-isospecpy-prototype-v1"
+    assert "natural-abundance dataset" in registry.source
     assert len(registry.patterns) == 80
     assert registry.presets["full"] == tuple(registry.patterns)
     assert {"H", "He", "Be", "Xe", "Pb"}.issubset(registry.patterns)
@@ -115,34 +112,25 @@ def test_full_isotope_patterns_match_isospecpy_source_when_available():
     isospecpy = pytest.importorskip("IsoSpecPy")
     registry = load_isotope_registry(resource="full")
     table = isospecpy.PeriodicTbl
-    removed = _full_removed_radioactive_isotopes()
 
     for element, pattern in registry.patterns.items():
-        mass_numbers = np.asarray(table.symbol_to_massNo[element], dtype=np.int64)
-        keep = ~np.isin(mass_numbers, removed.get(element, ()))
-        expected_masses = np.asarray(table.symbol_to_masses[element], dtype=np.float64)[keep]
-        expected_probs = np.asarray(table.symbol_to_probs[element], dtype=np.float64)[keep]
+        expected_masses = np.asarray(table.symbol_to_masses[element], dtype=np.float64)
+        expected_probs = np.asarray(table.symbol_to_probs[element], dtype=np.float64)
         expected_probs = expected_probs / expected_probs.sum()
 
         np.testing.assert_allclose(pattern.masses, expected_masses, rtol=0.0, atol=0.0)
         np.testing.assert_allclose(pattern.abundances, expected_probs, rtol=1e-15, atol=1e-15)
 
 
-def test_full_isotope_patterns_remove_radioactive_natural_rows():
+def test_full_isotope_patterns_keep_long_lived_natural_rows():
     registry = load_isotope_registry(resource="full")
-    removed = _full_removed_radioactive_isotopes()
 
-    assert len(removed) == 28
-    assert sum(len(isotopes) for isotopes in removed.values()) == 38
     assert len(registry.patterns) == 80
-    assert sum(pattern.masses.size for pattern in registry.patterns.values()) == 244
-    assert removed["K"] == [40]
-    assert removed["Ca"] == [48]
-    assert removed["Xe"] == [124, 134, 136]
-    assert 40 not in _isotope_numbers(registry, "K")
-    assert 48 not in _isotope_numbers(registry, "Ca")
-    assert 136 not in _isotope_numbers(registry, "Xe")
-    assert 208 in _isotope_numbers(registry, "Pb")
+    assert sum(pattern.masses.size for pattern in registry.patterns.values()) == 282
+    assert registry.patterns["K"].masses.size == 3
+    assert registry.patterns["Ca"].masses.size == 6
+    assert registry.patterns["Xe"].masses.size == 9
+    assert registry.patterns["Lu"].masses.size == 2
 
 
 @pytest.mark.parametrize("element", COMMON_ELEMENTS)
@@ -264,22 +252,3 @@ def test_table_cache_key_includes_isotope_data_version():
 
 def _relative_l2(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.linalg.norm(a - b) / np.linalg.norm(b))
-
-
-def _full_removed_radioactive_isotopes() -> dict[str, list[int]]:
-    raw = _full_raw_json()
-    selection = raw["selection"]
-    return {
-        element: [int(isotope) for isotope in isotopes]
-        for element, isotopes in selection["removed_radioactive_isotopes"].items()
-    }
-
-
-def _isotope_numbers(registry, element: str) -> set[int]:
-    raw = _full_raw_json()
-    return {int(row["isotope"]) for row in raw["elements"][element]}
-
-
-def _full_raw_json() -> dict:
-    path = resources.files("fastiso.isotope_data").joinpath("full.json")
-    return json.loads(path.read_text(encoding="utf-8"))

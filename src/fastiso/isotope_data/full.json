@@ -1,10 +1,9 @@
 {
-  "source": "IsoSpecPy.PeriodicTbl extracted from the local benchmark environment; IAEA LiveChart ground-state half-life data used to retain only isotope rows with half_life == STABLE. Pseudo symbols, elements with no stable isotope, and synthetic unstable elements are excluded.",
-  "version": "full-strict-stable-isotopes-isospecpy-iaea-prototype-v1",
+  "source": "IsoSpecPy.PeriodicTbl extracted from the local benchmark environment; natural-abundance dataset for real elements with at least one stable isotope. Pseudo symbols, elements with no stable isotope, and synthetic unstable elements are excluded. Long-lived naturally occurring isotopes are retained because they contribute mass-spectrometry signal.",
+  "version": "full-natural-abundance-isospecpy-prototype-v1",
   "generated_at": "2026-06-07",
   "selection": {
-    "policy": "real elements with at least one IAEA ground-state STABLE isotope; natural-abundance rows retained from IsoSpecPy.PeriodicTbl and renormalized after removing radioactive isotopes",
-    "stable_reference": "IAEA LiveChart ground_states, nuclides=all, half_life == STABLE",
+    "policy": "real elements with at least one stable isotope; natural-abundance isotope rows retained from IsoSpecPy.PeriodicTbl",
     "excluded_symbols": [
       "Bi",
       "E",
@@ -16,115 +15,19 @@
       "U"
     ],
     "element_count": 80,
-    "isotope_row_count": 244,
-    "removed_radioactive_isotopes": {
-      "K": [
-        40
-      ],
-      "Ca": [
-        48
-      ],
-      "V": [
-        50
-      ],
-      "Cr": [
-        50
-      ],
-      "Zn": [
-        70
-      ],
-      "Se": [
-        82
-      ],
-      "Rb": [
-        87
-      ],
-      "Zr": [
-        96
-      ],
-      "Mo": [
-        100
-      ],
-      "Cd": [
-        113,
-        116
-      ],
-      "In": [
-        115
-      ],
-      "Te": [
-        123,
-        128,
-        130
-      ],
-      "Xe": [
-        124,
-        134,
-        136
-      ],
-      "Ba": [
-        132
-      ],
-      "La": [
-        138
-      ],
-      "Ce": [
-        138,
-        142
-      ],
-      "Nd": [
-        144,
-        150
-      ],
-      "Sm": [
-        147,
-        148
-      ],
-      "Eu": [
-        151
-      ],
-      "Gd": [
-        152
-      ],
-      "Lu": [
-        176
-      ],
-      "Hf": [
-        174
-      ],
-      "Ta": [
-        180
-      ],
-      "W": [
-        180,
-        183
-      ],
-      "Re": [
-        187
-      ],
-      "Os": [
-        184,
-        186
-      ],
-      "Pt": [
-        190
-      ],
-      "Pb": [
-        204
-      ]
-    }
+    "isotope_row_count": 282
   },
   "elements": {
     "H": [
       {
         "isotope": 1,
         "mass": 1.00782503227,
-        "abundance": 0.999884290164308
+        "abundance": 0.9998842901643079
       },
       {
         "isotope": 2,
         "mass": 2.01410177819,
-        "abundance": 0.00011570983569203333
+        "abundance": 0.00011570983569203331
       }
     ],
     "He": [
@@ -143,12 +46,12 @@
       {
         "isotope": 6,
         "mass": 6.0151228871,
-        "abundance": 0.07593392528597713
+        "abundance": 0.07593392528597712
       },
       {
         "isotope": 7,
         "mass": 7.016003443,
-        "abundance": 0.9240660747140229
+        "abundance": 0.9240660747140228
       }
     ],
     "Be": [
@@ -162,12 +65,12 @@
       {
         "isotope": 10,
         "mass": 10.0129373,
-        "abundance": 0.19948083067092653
+        "abundance": 0.1994808306709265
       },
       {
         "isotope": 11,
         "mass": 11.0093053,
-        "abundance": 0.8005191693290735
+        "abundance": 0.8005191693290734
       }
     ],
     "C": [
@@ -222,17 +125,17 @@
       {
         "isotope": 20,
         "mass": 19.992440182,
-        "abundance": 0.9047666663333567
+        "abundance": 0.9047666663333566
       },
       {
         "isotope": 21,
         "mass": 20.99384673,
-        "abundance": 0.0027098103132780706
+        "abundance": 0.00270981031327807
       },
       {
         "isotope": 22,
         "mass": 21.99138512,
-        "abundance": 0.09252352335336528
+        "abundance": 0.09252352335336526
       }
     ],
     "Na": [
@@ -270,17 +173,17 @@
       {
         "isotope": 28,
         "mass": 27.9769265353,
-        "abundance": 0.9222208333499998
+        "abundance": 0.9222208333499997
       },
       {
         "isotope": 29,
         "mass": 28.9764946653,
-        "abundance": 0.04685843769874762
+        "abundance": 0.04685843769874761
       },
       {
         "isotope": 30,
         "mass": 29.973770012,
-        "abundance": 0.030920728951252585
+        "abundance": 0.03092072895125258
       }
     ],
     "P": [
@@ -345,39 +248,49 @@
       {
         "isotope": 39,
         "mass": 38.963706493,
-        "abundance": 0.9326897439330655
+        "abundance": 0.9325805260710844
+      },
+      {
+        "isotope": 40,
+        "mass": 39.96399824,
+        "abundance": 0.00011709988524211245
       },
       {
         "isotope": 41,
         "mass": 40.961825263,
-        "abundance": 0.06731025606693448
+        "abundance": 0.06730237404367342
       }
     ],
     "Ca": [
       {
         "isotope": 40,
         "mass": 39.96259092,
-        "abundance": 0.9712190374775072
+        "abundance": 0.969400838426727
       },
       {
         "isotope": 42,
         "mass": 41.9586181,
-        "abundance": 0.006484367667604117
+        "abundance": 0.006472228417153706
       },
       {
         "isotope": 43,
         "mass": 42.9587662,
-        "abundance": 0.0013535189529121274
+        "abundance": 0.0013509850581052572
       },
       {
         "isotope": 44,
         "mass": 43.9554822,
-        "abundance": 0.02089999572804973
+        "abundance": 0.020860869278785776
       },
       {
         "isotope": 46,
         "mass": 45.953692,
-        "abundance": 4.3080173926884885e-05
+        "abundance": 4.299952442525985e-05
+      },
+      {
+        "isotope": 48,
+        "mass": 47.95252289,
+        "abundance": 0.0018720792948029993
       }
     ],
     "Sc": [
@@ -391,51 +304,61 @@
       {
         "isotope": 46,
         "mass": 45.9526283,
-        "abundance": 0.08252009758828942
+        "abundance": 0.0825200975882894
       },
       {
         "isotope": 47,
         "mass": 46.9517593,
-        "abundance": 0.07441107067151942
+        "abundance": 0.0744110706715194
       },
       {
         "isotope": 48,
         "mass": 47.9479423,
-        "abundance": 0.7371415430148383
+        "abundance": 0.7371415430148381
       },
       {
         "isotope": 49,
         "mass": 48.9478663,
-        "abundance": 0.0541135063792345
+        "abundance": 0.05411350637923449
       },
       {
         "isotope": 50,
         "mass": 49.9447873,
-        "abundance": 0.05181378234611847
+        "abundance": 0.05181378234611846
       }
     ],
     "V": [
       {
+        "isotope": 50,
+        "mass": 49.9471567,
+        "abundance": 0.0025039799681602546
+      },
+      {
         "isotope": 51,
         "mass": 50.9439577,
-        "abundance": 1.0
+        "abundance": 0.9974960200318397
       }
     ],
     "Cr": [
       {
+        "isotope": 50,
+        "mass": 49.9460427,
+        "abundance": 0.04345074383047896
+      },
+      {
         "isotope": 52,
         "mass": 51.9405064,
-        "abundance": 0.8759413796185609
+        "abundance": 0.8378810751222384
       },
       {
         "isotope": 53,
         "mass": 52.9406484,
-        "abundance": 0.09932628482329678
+        "abundance": 0.09501048386580652
       },
       {
         "isotope": 54,
         "mass": 53.9388794,
-        "abundance": 0.024732335558142367
+        "abundance": 0.023657697181476076
       }
     ],
     "Mn": [
@@ -478,100 +401,105 @@
       {
         "isotope": 58,
         "mass": 57.9353423,
-        "abundance": 0.6807690952313277
+        "abundance": 0.6807690952313276
       },
       {
         "isotope": 60,
         "mass": 59.9307863,
-        "abundance": 0.26223041961067123
+        "abundance": 0.2622304196106712
       },
       {
         "isotope": 61,
         "mass": 60.9310563,
-        "abundance": 0.011399083035777894
+        "abundance": 0.011399083035777892
       },
       {
         "isotope": 62,
         "mass": 61.9283454,
-        "abundance": 0.03634625025344896
+        "abundance": 0.03634625025344895
       },
       {
         "isotope": 64,
         "mass": 63.9279674,
-        "abundance": 0.009255151868774302
+        "abundance": 0.0092551518687743
       }
     ],
     "Cu": [
       {
         "isotope": 63,
         "mass": 62.9295984,
-        "abundance": 0.6914942551723449
+        "abundance": 0.6914942551723448
       },
       {
         "isotope": 65,
         "mass": 64.9277906,
-        "abundance": 0.3085057448276552
+        "abundance": 0.30850574482765514
       }
     ],
     "Zn": [
       {
         "isotope": 64,
         "mass": 63.9291426,
-        "abundance": 0.49466733054704753
+        "abundance": 0.49164571388582023
       },
       {
         "isotope": 66,
         "mass": 65.9260347,
-        "abundance": 0.27902992994050224
+        "abundance": 0.2773255087401838
       },
       {
         "isotope": 67,
         "mass": 66.9271287,
-        "abundance": 0.04065362041130407
+        "abundance": 0.040405292597461666
       },
       {
         "isotope": 68,
         "mass": 67.9248457,
-        "abundance": 0.1856491191011462
+        "abundance": 0.18451510349757314
+      },
+      {
+        "isotope": 70,
+        "mass": 69.925322,
+        "abundance": 0.006108381278961075
       }
     ],
     "Ga": [
       {
         "isotope": 69,
         "mass": 68.9255749,
-        "abundance": 0.6010797978404043
+        "abundance": 0.6010797978404042
       },
       {
         "isotope": 71,
         "mass": 70.9247037,
-        "abundance": 0.3989202021595957
+        "abundance": 0.39892020215959567
       }
     ],
     "Ge": [
       {
         "isotope": 70,
         "mass": 69.9242497,
-        "abundance": 0.20570581230133297
+        "abundance": 0.20570581230133295
       },
       {
         "isotope": 72,
         "mass": 71.92207586,
-        "abundance": 0.27450372611621005
+        "abundance": 0.27450372611621
       },
       {
         "isotope": 73,
         "mass": 72.92345904,
-        "abundance": 0.07750401708624012
+        "abundance": 0.0775040170862401
       },
       {
         "isotope": 74,
         "mass": 73.921177761,
-        "abundance": 0.36498240681209837
+        "abundance": 0.3649824068120983
       },
       {
         "isotope": 76,
         "mass": 75.92140272,
-        "abundance": 0.07730403768411855
+        "abundance": 0.07730403768411853
       }
     ],
     "As": [
@@ -585,100 +513,110 @@
       {
         "isotope": 74,
         "mass": 73.92247591,
-        "abundance": 0.009793460947752873
+        "abundance": 0.00893842683687671
       },
       {
         "isotope": 76,
         "mass": 75.91921372,
-        "abundance": 0.1026768793257191
+        "abundance": 0.09371250659883859
       },
       {
         "isotope": 77,
         "mass": 76.91991426,
-        "abundance": 0.08360153978620896
+        "abundance": 0.07630257074754843
       },
       {
         "isotope": 78,
         "mass": 77.9173092,
-        "abundance": 0.2604228058375162
+        "abundance": 0.2376861672345667
       },
       {
         "isotope": 80,
         "mass": 79.9165229,
-        "abundance": 0.5435053141028029
+        "abundance": 0.4960536945497592
+      },
+      {
+        "isotope": 82,
+        "mass": 81.9167001,
+        "abundance": 0.08730663403241029
       }
     ],
     "Br": [
       {
         "isotope": 79,
         "mass": 78.9183381,
-        "abundance": 0.5068988961766118
+        "abundance": 0.5068988961766117
       },
       {
         "isotope": 81,
         "mass": 80.9162901,
-        "abundance": 0.4931011038233883
+        "abundance": 0.49310110382338823
       }
     ],
     "Kr": [
       {
         "isotope": 78,
         "mass": 77.9203656,
-        "abundance": 0.0035529481269573468
+        "abundance": 0.0035529481269573463
       },
       {
         "isotope": 80,
         "mass": 79.9163786,
-        "abundance": 0.02286066623427298
+        "abundance": 0.022860666234272978
       },
       {
         "isotope": 82,
         "mass": 81.9134837,
-        "abundance": 0.11593140740145194
+        "abundance": 0.11593140740145193
       },
       {
         "isotope": 83,
         "mass": 82.9141272,
-        "abundance": 0.11500022099677346
+        "abundance": 0.11500022099677344
       },
       {
         "isotope": 84,
         "mass": 83.911497733,
-        "abundance": 0.5698631799975721
+        "abundance": 0.569863179997572
       },
       {
         "isotope": 86,
         "mass": 85.910610633,
-        "abundance": 0.17279157724297226
+        "abundance": 0.17279157724297223
       }
     ],
     "Rb": [
       {
         "isotope": 85,
         "mass": 84.911789743,
-        "abundance": 1.0
+        "abundance": 0.7216911323547057
+      },
+      {
+        "isotope": 87,
+        "mass": 86.909180536,
+        "abundance": 0.27830886764529417
       }
     ],
     "Sr": [
       {
         "isotope": 84,
         "mass": 83.9134199,
-        "abundance": 0.005609775608975642
+        "abundance": 0.005609775608975641
       },
       {
         "isotope": 86,
         "mass": 85.9092619,
-        "abundance": 0.09860605575776969
+        "abundance": 0.09860605575776968
       },
       {
         "isotope": 87,
         "mass": 86.9088789,
-        "abundance": 0.07000719971201153
+        "abundance": 0.07000719971201151
       },
       {
         "isotope": 88,
         "mass": 87.9056139,
-        "abundance": 0.8257769689212432
+        "abundance": 0.8257769689212431
       }
     ],
     "Y": [
@@ -692,22 +630,27 @@
       {
         "isotope": 90,
         "mass": 89.904702,
-        "abundance": 0.5292434412858023
+        "abundance": 0.5144227116217502
       },
       {
         "isotope": 91,
         "mass": 90.905642,
-        "abundance": 0.11546793003215329
+        "abundance": 0.1122344105543936
       },
       {
         "isotope": 92,
         "mass": 91.905032,
-        "abundance": 0.17649333791392463
+        "abundance": 0.17155088639790125
       },
       {
         "isotope": 94,
         "mass": 93.906312,
-        "abundance": 0.1787952907681199
+        "abundance": 0.17378837625021493
+      },
+      {
+        "isotope": 96,
+        "mass": 95.908272,
+        "abundance": 0.02800361517573993
       }
     ],
     "Nb": [
@@ -721,69 +664,74 @@
       {
         "isotope": 92,
         "mass": 91.9068086,
-        "abundance": 0.16113456116250163
+        "abundance": 0.14530849434283724
       },
       {
         "isotope": 94,
         "mass": 93.9050853,
-        "abundance": 0.10146166443253647
+        "abundance": 0.09149645852413842
       },
       {
         "isotope": 95,
         "mass": 94.9058393,
-        "abundance": 0.17563811304144394
+        "abundance": 0.15838755864132106
       },
       {
         "isotope": 96,
         "mass": 95.9046763,
-        "abundance": 0.18484516867960135
+        "abundance": 0.16669032983118498
       },
       {
         "isotope": 97,
         "mass": 96.9060183,
-        "abundance": 0.10645547206672011
+        "abundance": 0.09599979203077944
       },
       {
         "isotope": 98,
         "mass": 97.9054053,
-        "abundance": 0.27046502061719646
+        "abundance": 0.24390090266640535
+      },
+      {
+        "isotope": 100,
+        "mass": 99.9074728,
+        "abundance": 0.09821646396333342
       }
     ],
     "Ru": [
       {
         "isotope": 96,
         "mass": 95.9075903,
-        "abundance": 0.055402974808013206
+        "abundance": 0.0554029748080132
       },
       {
         "isotope": 98,
         "mass": 97.905296,
-        "abundance": 0.018726273471579156
+        "abundance": 0.018726273471579152
       },
       {
         "isotope": 99,
         "mass": 98.9059348,
-        "abundance": 0.12758860986663656
+        "abundance": 0.12758860986663653
       },
       {
         "isotope": 100,
         "mass": 99.9042148,
-        "abundance": 0.1260549150719007
+        "abundance": 0.12605491507190067
       },
       {
         "isotope": 101,
         "mass": 100.9055779,
-        "abundance": 0.17058605337537833
+        "abundance": 0.1705860533753783
       },
       {
         "isotope": 102,
         "mass": 101.9043449,
-        "abundance": 0.315451225206184
+        "abundance": 0.31545122520618396
       },
       {
         "isotope": 104,
         "mass": 103.905432,
-        "abundance": 0.18618994820030815
+        "abundance": 0.18618994820030813
       }
     ],
     "Rh": [
@@ -797,174 +745,204 @@
       {
         "isotope": 102,
         "mass": 101.905602,
-        "abundance": 0.010207550187954892
+        "abundance": 0.01020755018795489
       },
       {
         "isotope": 104,
         "mass": 103.9040311,
-        "abundance": 0.11146324882028313
+        "abundance": 0.11146324882028312
       },
       {
         "isotope": 105,
         "mass": 104.9050809,
-        "abundance": 0.22333639926417662
+        "abundance": 0.2233363992641766
       },
       {
         "isotope": 106,
         "mass": 105.9034809,
-        "abundance": 0.2732644165400304
+        "abundance": 0.27326441654003036
       },
       {
         "isotope": 108,
         "mass": 107.9038929,
-        "abundance": 0.26454650883787895
+        "abundance": 0.2645465088378789
       },
       {
         "isotope": 110,
         "mass": 109.9051726,
-        "abundance": 0.11718187634967608
+        "abundance": 0.11718187634967607
       }
     ],
     "Ag": [
       {
         "isotope": 107,
         "mass": 106.905092,
-        "abundance": 0.5183896689859583
+        "abundance": 0.5183896689859582
       },
       {
         "isotope": 109,
         "mass": 108.9047551,
-        "abundance": 0.48161033101404177
+        "abundance": 0.4816103310140417
       }
     ],
     "Cd": [
       {
         "isotope": 106,
         "mass": 105.9064609,
-        "abundance": 0.015651985511018027
+        "abundance": 0.012567197514954165
       },
       {
         "isotope": 108,
         "mass": 107.9041839,
-        "abundance": 0.011119509197564914
+        "abundance": 0.008928009053980961
       },
       {
         "isotope": 110,
         "mass": 109.9030074,
-        "abundance": 0.15554611981426808
+        "abundance": 0.12489014949666223
       },
       {
         "isotope": 111,
         "mass": 110.9041834,
-        "abundance": 0.1593987246807032
+        "abundance": 0.12798345968848945
       },
       {
         "isotope": 112,
         "mass": 111.9027634,
-        "abundance": 0.30048948253813695
+        "abundance": 0.24126719741497646
+      },
+      {
+        "isotope": 113,
+        "mass": 112.9044083,
+        "abundance": 0.12218475280012557
       },
       {
         "isotope": 114,
         "mass": 113.9033653,
-        "abundance": 0.3577941782583088
+        "abundance": 0.2872779370200445
+      },
+      {
+        "isotope": 116,
+        "mass": 115.9047632,
+        "abundance": 0.07490129701076659
       }
     ],
     "In": [
       {
         "isotope": 113,
         "mass": 112.9040627,
-        "abundance": 1.0
+        "abundance": 0.04295484541854977
+      },
+      {
+        "isotope": 115,
+        "mass": 114.903878789,
+        "abundance": 0.9570451545814501
       }
     ],
     "Sn": [
       {
         "isotope": 112,
         "mass": 111.9048244,
-        "abundance": 0.009707379007667931
+        "abundance": 0.00970737900766793
       },
       {
         "isotope": 114,
         "mass": 113.9027837,
-        "abundance": 0.006608215781738931
+        "abundance": 0.00660821578173893
       },
       {
         "isotope": 115,
         "mass": 114.90334471,
-        "abundance": 0.003409079548521899
+        "abundance": 0.0034090795485218987
       },
       {
         "isotope": 116,
         "mass": 115.9017431,
-        "abundance": 0.14537074989752768
+        "abundance": 0.14537074989752766
       },
       {
         "isotope": 117,
         "mass": 116.9029543,
-        "abundance": 0.07685924800303919
+        "abundance": 0.07685924800303917
       },
       {
         "isotope": 118,
         "mass": 117.9016073,
-        "abundance": 0.24214462095234288
+        "abundance": 0.24214462095234285
       },
       {
         "isotope": 119,
         "mass": 118.9033116,
-        "abundance": 0.08591680246333491
+        "abundance": 0.0859168024633349
       },
       {
         "isotope": 120,
         "mass": 119.9022027,
-        "abundance": 0.32572205504513785
+        "abundance": 0.3257220550451378
       },
       {
         "isotope": 122,
         "mass": 121.903442,
-        "abundance": 0.046317494276545336
+        "abundance": 0.04631749427654533
       },
       {
         "isotope": 124,
         "mass": 123.9052778,
-        "abundance": 0.05794435502414348
+        "abundance": 0.057944355024143475
       }
     ],
     "Sb": [
       {
         "isotope": 121,
         "mass": 120.903812,
-        "abundance": 0.5720913490381154
+        "abundance": 0.5720913490381153
       },
       {
         "isotope": 123,
         "mass": 122.904212,
-        "abundance": 0.42790865096188463
+        "abundance": 0.4279086509618846
       }
     ],
     "Te": [
       {
         "isotope": 120,
         "mass": 119.904062,
-        "abundance": 0.002732929700639085
+        "abundance": 0.0009097643710279037
       },
       {
         "isotope": 122,
         "mass": 121.903041,
-        "abundance": 0.07661813464033444
+        "abundance": 0.02550539410292734
+      },
+      {
+        "isotope": 123,
+        "mass": 122.904271,
+        "abundance": 0.00892768772887822
       },
       {
         "isotope": 124,
         "mass": 123.902821,
-        "abundance": 0.1423946470616501
+        "abundance": 0.04740172295375497
       },
       {
         "isotope": 125,
         "mass": 124.904431,
-        "abundance": 0.21237266349526696
+        "abundance": 0.07069668955740463
       },
       {
         "isotope": 126,
         "mass": 125.903311,
-        "abundance": 0.5658816251021095
+        "abundance": 0.18837621056146456
+      },
+      {
+        "isotope": 128,
+        "mass": 127.9044617,
+        "abundance": 0.317407791382032
+      },
+      {
+        "isotope": 130,
+        "mass": 129.906222759,
+        "abundance": 0.34077473934251024
       }
     ],
     "I": [
@@ -976,34 +954,49 @@
     ],
     "Xe": [
       {
+        "isotope": 124,
+        "mass": 123.905892,
+        "abundance": 0.0009522965336406175
+      },
+      {
         "isotope": 126,
         "mass": 125.904303,
-        "abundance": 0.001104301143790268
+        "abundance": 0.0008901967596837947
       },
       {
         "isotope": 128,
         "mass": 127.9035318,
-        "abundance": 0.023697320062582686
+        "abundance": 0.019102830465697104
       },
       {
         "isotope": 129,
         "mass": 128.904780864,
-        "abundance": 0.3275028581638315
+        "abundance": 0.26400586901863676
       },
       {
         "isotope": 130,
         "mass": 129.90350941,
-        "abundance": 0.05050128411913109
+        "abundance": 0.04070998181566619
       },
       {
         "isotope": 131,
         "mass": 130.9050842,
-        "abundance": 0.26339021269879576
+        "abundance": 0.2123235271423612
       },
       {
         "isotope": 132,
         "mass": 131.904155094,
-        "abundance": 0.33380402381186863
+        "abundance": 0.26908535052932403
+      },
+      {
+        "isotope": 134,
+        "mass": 133.9053957,
+        "abundance": 0.10435683014113828
+      },
+      {
+        "isotope": 136,
+        "mass": 135.907214488,
+        "abundance": 0.08857311759385195
       }
     ],
     "Cs": [
@@ -1017,51 +1010,71 @@
       {
         "isotope": 130,
         "mass": 129.906322,
-        "abundance": 0.001062058872696078
+        "abundance": 0.001060985146207953
+      },
+      {
+        "isotope": 132,
+        "mass": 131.9050618,
+        "abundance": 0.001010985846198153
       },
       {
         "isotope": 134,
         "mass": 133.9045082,
-        "abundance": 0.024195923335565563
+        "abundance": 0.024171461599537605
       },
       {
         "isotope": 135,
         "mass": 134.9056882,
-        "abundance": 0.06598698902806098
+        "abundance": 0.06592027711612036
       },
       {
         "isotope": 136,
         "mass": 135.9045762,
-        "abundance": 0.07862078492256781
+        "abundance": 0.0785413004217941
       },
       {
         "isotope": 137,
         "mass": 136.9058272,
-        "abundance": 0.11243449719370213
+        "abundance": 0.11232082750841488
       },
       {
         "isotope": 138,
         "mass": 137.9052472,
-        "abundance": 0.7176997466474074
+        "abundance": 0.7169741623617268
       }
     ],
     "La": [
       {
+        "isotope": 138,
+        "mass": 137.907123,
+        "abundance": 0.0008881718721032504
+      },
+      {
         "isotope": 139,
         "mass": 138.906362,
-        "abundance": 1.0
+        "abundance": 0.9991118281278967
       }
     ],
     "Ce": [
       {
         "isotope": 136,
         "mass": 135.9071293,
-        "abundance": 0.0020894510700652062
+        "abundance": 0.001851973331584025
+      },
+      {
+        "isotope": 138,
+        "mass": 137.905998,
+        "abundance": 0.0025119638277208804
       },
       {
         "isotope": 140,
         "mass": 139.905442,
-        "abundance": 0.9979105489299348
+        "abundance": 0.8844924633085283
+      },
+      {
+        "isotope": 142,
+        "mass": 141.909252,
+        "abundance": 0.11114359953216672
       }
     ],
     "Pr": [
@@ -1075,93 +1088,123 @@
       {
         "isotope": 142,
         "mass": 141.907732,
-        "abundance": 0.38478396821327643
+        "abundance": 0.2715191669588281
       },
       {
         "isotope": 143,
         "mass": 142.909822,
-        "abundance": 0.17252471504766295
+        "abundance": 0.12174043302029224
+      },
+      {
+        "isotope": 144,
+        "mass": 143.910092,
+        "abundance": 0.23797766399758083
       },
       {
         "isotope": 145,
         "mass": 144.912582,
-        "abundance": 0.11752403553530764
+        "abundance": 0.08292972385091545
       },
       {
         "isotope": 146,
         "mass": 145.913122,
-        "abundance": 0.24359448006392942
+        "abundance": 0.17189014035550165
       },
       {
         "isotope": 148,
         "mass": 147.916902,
-        "abundance": 0.08157280113982351
+        "abundance": 0.05756107541285765
+      },
+      {
+        "isotope": 150,
+        "mass": 149.920902,
+        "abundance": 0.05638179640402401
       }
     ],
     "Sm": [
       {
         "isotope": 144,
         "mass": 143.912012,
-        "abundance": 0.041712121314785584
+        "abundance": 0.030772522277086666
+      },
+      {
+        "isotope": 147,
+        "mass": 146.914902,
+        "abundance": 0.14988157877635733
+      },
+      {
+        "isotope": 148,
+        "mass": 147.914832,
+        "abundance": 0.11238269100608551
       },
       {
         "isotope": 149,
         "mass": 148.917192,
-        "abundance": 0.18739285690086258
+        "abundance": 0.13824640612331202
       },
       {
         "isotope": 150,
         "mass": 149.917282,
-        "abundance": 0.10002507063821715
+        "abundance": 0.07379206852734785
       },
       {
         "isotope": 152,
         "mass": 151.919742,
-        "abundance": 0.3625295596376276
+        "abundance": 0.2674510094047146
       },
       {
         "isotope": 154,
         "mass": 153.922222,
-        "abundance": 0.3083403915085071
+        "abundance": 0.2274737238850959
       }
     ],
     "Eu": [
       {
+        "isotope": 151,
+        "mass": 150.919862,
+        "abundance": 0.47810306557082005
+      },
+      {
         "isotope": 153,
         "mass": 152.921242,
-        "abundance": 1.0
+        "abundance": 0.5218969344291798
       }
     ],
     "Gd": [
       {
+        "isotope": 152,
+        "mass": 151.919802,
+        "abundance": 0.002009636255837693
+      },
+      {
         "isotope": 154,
         "mass": 153.920872,
-        "abundance": 0.021870000230421443
+        "abundance": 0.021826049485043207
       },
       {
         "isotope": 155,
         "mass": 154.922632,
-        "abundance": 0.14828320999107367
+        "abundance": 0.14798521467614362
       },
       {
         "isotope": 156,
         "mass": 155.922132,
-        "abundance": 0.20508510064908717
+        "abundance": 0.20467295419529064
       },
       {
         "isotope": 157,
         "mass": 156.923972,
-        "abundance": 0.1568067996365352
+        "abundance": 0.15649167500682376
       },
       {
         "isotope": 158,
         "mass": 157.924112,
-        "abundance": 0.24893530266858083
+        "abundance": 0.24843503325898011
       },
       {
         "isotope": 160,
         "mass": 159.927062,
-        "abundance": 0.21901958682430164
+        "abundance": 0.21857943712188094
       }
     ],
     "Tb": [
@@ -1175,37 +1218,37 @@
       {
         "isotope": 156,
         "mass": 155.924282,
-        "abundance": 0.0005629857564603616
+        "abundance": 0.0005629857564603615
       },
       {
         "isotope": 158,
         "mass": 157.924422,
-        "abundance": 0.0009529758897099904
+        "abundance": 0.0009529758897099903
       },
       {
         "isotope": 160,
         "mass": 159.925202,
-        "abundance": 0.02329121073236847
+        "abundance": 0.023291210732368468
       },
       {
         "isotope": 161,
         "mass": 160.926942,
-        "abundance": 0.18888942109764625
+        "abundance": 0.18888942109764623
       },
       {
         "isotope": 162,
         "mass": 161.926812,
-        "abundance": 0.25474715489698113
+        "abundance": 0.2547471548969811
       },
       {
         "isotope": 163,
         "mass": 162.928742,
-        "abundance": 0.24895790136509546
+        "abundance": 0.24895790136509544
       },
       {
         "isotope": 164,
         "mass": 163.929182,
-        "abundance": 0.2825983502617384
+        "abundance": 0.28259835026173835
       }
     ],
     "Ho": [
@@ -1219,32 +1262,32 @@
       {
         "isotope": 162,
         "mass": 161.928792,
-        "abundance": 0.0013959734765039465
+        "abundance": 0.0013959734765039463
       },
       {
         "isotope": 164,
         "mass": 163.929212,
-        "abundance": 0.016012695758780584
+        "abundance": 0.01601269575878058
       },
       {
         "isotope": 166,
         "mass": 165.930302,
-        "abundance": 0.33502723448254484
+        "abundance": 0.3350272344825448
       },
       {
         "isotope": 167,
         "mass": 166.932052,
-        "abundance": 0.2286866549535559
+        "abundance": 0.22868665495355586
       },
       {
         "isotope": 168,
         "mass": 167.932382,
-        "abundance": 0.2697766742431894
+        "abundance": 0.26977667424318935
       },
       {
         "isotope": 170,
         "mass": 169.935472,
-        "abundance": 0.14910076708542538
+        "abundance": 0.14910076708542536
       }
     ],
     "Tm": [
@@ -1258,168 +1301,213 @@
       {
         "isotope": 168,
         "mass": 167.933892,
-        "abundance": 0.001232929969577728
+        "abundance": 0.0012329299695777278
       },
       {
         "isotope": 170,
         "mass": 169.934772,
-        "abundance": 0.029822206098693595
+        "abundance": 0.029822206098693592
       },
       {
         "isotope": 171,
         "mass": 170.936332,
-        "abundance": 0.1409059965393966
+        "abundance": 0.14090599653939656
       },
       {
         "isotope": 172,
         "mass": 171.936392,
-        "abundance": 0.21680068572105105
+        "abundance": 0.21680068572105102
       },
       {
         "isotope": 173,
         "mass": 172.938222,
-        "abundance": 0.16102725365199258
+        "abundance": 0.16102725365199255
       },
       {
         "isotope": 174,
         "mass": 173.938872,
-        "abundance": 0.3202499098051231
+        "abundance": 0.320249909805123
       },
       {
         "isotope": 176,
         "mass": 175.942582,
-        "abundance": 0.12996101821416545
+        "abundance": 0.12996101821416542
       }
     ],
     "Lu": [
       {
         "isotope": 175,
         "mass": 174.940782,
-        "abundance": 1.0
+        "abundance": 0.9740087675772042
+      },
+      {
+        "isotope": 176,
+        "mass": 175.942692,
+        "abundance": 0.025991232422795697
       }
     ],
     "Hf": [
       {
+        "isotope": 174,
+        "mass": 173.940052,
+        "abundance": 0.0016096523150999384
+      },
+      {
         "isotope": 176,
         "mass": 175.941412,
-        "abundance": 0.052753538432575006
+        "abundance": 0.0526686235773073
       },
       {
         "isotope": 177,
         "mass": 176.943232,
-        "abundance": 0.18626965990590882
+        "abundance": 0.1859698305166084
       },
       {
         "isotope": 178,
         "mass": 177.943712,
-        "abundance": 0.2732609257304683
+        "abundance": 0.27282107064873984
       },
       {
         "isotope": 179,
         "mass": 178.945822,
-        "abundance": 0.13641015575712542
+        "abundance": 0.13619058283410782
       },
       {
         "isotope": 180,
         "mass": 179.946562,
-        "abundance": 0.3513057201739224
+        "abundance": 0.3507402401081366
       }
     ],
     "Ta": [
       {
+        "isotope": 180,
+        "mass": 179.947462,
+        "abundance": 0.00012013199231155249
+      },
+      {
         "isotope": 181,
         "mass": 180.948002,
-        "abundance": 1.0
+        "abundance": 0.9998798680076884
       }
     ],
     "W": [
       {
+        "isotope": 180,
+        "mass": 179.946712,
+        "abundance": 0.0012098729633388493
+      },
+      {
         "isotope": 182,
         "mass": 181.9482047,
-        "abundance": 0.3096867678249032
+        "abundance": 0.2649881762414946
+      },
+      {
+        "isotope": 183,
+        "mass": 182.9502237,
+        "abundance": 0.1431249718779528
       },
       {
         "isotope": 184,
         "mass": 183.9509317,
-        "abundance": 0.35806977464344353
+        "abundance": 0.3063878292779258
       },
       {
         "isotope": 186,
         "mass": 185.954362,
-        "abundance": 0.33224345753165335
+        "abundance": 0.28428914963928786
       }
     ],
     "Re": [
       {
         "isotope": 185,
         "mass": 184.9529559,
-        "abundance": 1.0
+        "abundance": 0.37400503979840805
+      },
+      {
+        "isotope": 187,
+        "mass": 186.955751,
+        "abundance": 0.6259949602015918
       }
     ],
     "Os": [
       {
+        "isotope": 184,
+        "mass": 183.9524891,
+        "abundance": 0.00020994772301696877
+      },
+      {
+        "isotope": 186,
+        "mass": 185.953841,
+        "abundance": 0.015926034417430058
+      },
+      {
         "isotope": 187,
         "mass": 186.955751,
-        "abundance": 0.01993681594213649
+        "abundance": 0.019615115836156796
       },
       {
         "isotope": 188,
         "mass": 187.955841,
-        "abundance": 0.1346293957275058
+        "abundance": 0.13245701820246758
       },
       {
         "isotope": 189,
         "mass": 188.958142,
-        "abundance": 0.16416880650415755
+        "abundance": 0.16151978157438796
       },
       {
         "isotope": 190,
         "mass": 189.958442,
-        "abundance": 0.2668606831153866
+        "abundance": 0.2625546238986492
       },
       {
         "isotope": 192,
         "mass": 191.961482,
-        "abundance": 0.4144042987108135
+        "abundance": 0.40771747834789135
       }
     ],
     "Ir": [
       {
         "isotope": 191,
         "mass": 190.960592,
-        "abundance": 0.3730507796881248
+        "abundance": 0.3730507796881247
       },
       {
         "isotope": 193,
         "mass": 192.962922,
-        "abundance": 0.6269492203118753
+        "abundance": 0.6269492203118752
       }
     ],
     "Pt": [
       {
+        "isotope": 190,
+        "mass": 189.959934,
+        "abundance": 0.00012198734991181413
+      },
+      {
         "isotope": 192,
         "mass": 191.961042,
-        "abundance": 0.00782254315253969
+        "abundance": 0.007821588901230941
       },
       {
         "isotope": 194,
         "mass": 193.9626817,
-        "abundance": 0.32864601422206025
+        "abundance": 0.3286059235657262
       },
       {
         "isotope": 195,
         "mass": 194.9647927,
-        "abundance": 0.3378301822923359
+        "abundance": 0.33778897128367785
       },
       {
         "isotope": 196,
         "mass": 195.9649527,
-        "abundance": 0.2521386141366387
+        "abundance": 0.2521078564152897
       },
       {
         "isotope": 198,
         "mass": 197.967892,
-        "abundance": 0.0735626461964254
+        "abundance": 0.07355367248416339
       }
     ],
     "Au": [
@@ -1433,66 +1521,71 @@
       {
         "isotope": 196,
         "mass": 195.965832,
-        "abundance": 0.0015098158024720986
+        "abundance": 0.0015098158024720984
       },
       {
         "isotope": 198,
         "mass": 197.9667693,
-        "abundance": 0.09970783564405143
+        "abundance": 0.09970783564405142
       },
       {
         "isotope": 199,
         "mass": 198.9682813,
-        "abundance": 0.16870141842695194
+        "abundance": 0.1687014184269519
       },
       {
         "isotope": 200,
         "mass": 199.9683273,
-        "abundance": 0.23099081912006736
+        "abundance": 0.23099081912006733
       },
       {
         "isotope": 201,
         "mass": 200.9703036,
-        "abundance": 0.13179392114162072
+        "abundance": 0.1317939211416207
       },
       {
         "isotope": 202,
         "mass": 201.9706436,
-        "abundance": 0.2985895720722072
+        "abundance": 0.29858957207220715
       },
       {
         "isotope": 204,
         "mass": 203.9734943,
-        "abundance": 0.06870661779262931
+        "abundance": 0.0687066177926293
       }
     ],
     "Tl": [
       {
         "isotope": 203,
         "mass": 202.9723451,
-        "abundance": 0.29520409591808167
+        "abundance": 0.2952040959180816
       },
       {
         "isotope": 205,
         "mass": 204.9744281,
-        "abundance": 0.7047959040819184
+        "abundance": 0.7047959040819183
       }
     ],
     "Pb": [
       {
+        "isotope": 204,
+        "mass": 203.9730449,
+        "abundance": 0.01409436225509796
+      },
+      {
         "isotope": 206,
         "mass": 205.9744669,
-        "abundance": 0.24444895062354252
+        "abundance": 0.24100359856057577
       },
       {
         "isotope": 207,
         "mass": 206.9758979,
-        "abundance": 0.22417114468214538
+        "abundance": 0.22101159536185525
       },
       {
         "isotope": 208,
         "mass": 207.9766539,
-        "abundance": 0.5313799046943121
+        "abundance": 0.523890443822471
       }
     ]
   }
