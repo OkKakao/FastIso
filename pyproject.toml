@@ -25,6 +25,9 @@ classifiers = [
 Repository = "https://github.com/OkKakao/FastIso"
 Benchmarks = "https://github.com/OkKakao/FastIso/tree/main/benchmark_results"
 
+[project.scripts]
+fastiso = "fastiso.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "Cython>=3",

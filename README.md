@@ -42,13 +42,14 @@ Implemented:
 - CZT windowed profile evaluation;
 - versioned isotope data registry and presets;
 - monoisotopic element mass-shift handling;
+- command-line interface;
 - FastAPI prototype endpoint: `/simulate/window`;
 - benchmark scripts and saved benchmark outputs.
 
 Tested on the local development environment:
 
 ```text
-99 passed, 6 skipped
+110 passed, 6 skipped
 ```
 
 ## Installation
@@ -92,6 +93,47 @@ mass_axis, profile, info = table.mass_profile_many_counts(
     resolving_power=100_000,
 )
 ```
+
+## Command Line
+
+Editable/package installs expose the `fastiso` command:
+
+```powershell
+.\.venv\Scripts\fastiso isotopes list --preset common
+.\.venv\Scripts\fastiso isotopes inspect K --preset full --format json
+```
+
+Simulate a full dense profile as CSV:
+
+```powershell
+.\.venv\Scripts\fastiso simulate C500H800N125O200S10 `
+  --elements C H N O S `
+  --dm 0.002 `
+  --rp 100000 `
+  --method cython_auto `
+  --workers 4 `
+  --output profile.csv
+```
+
+Simulate only a local CZT window while keeping the table spacing separate from
+the output spacing:
+
+```powershell
+.\.venv\Scripts\fastiso window C500H800N125O200S10 `
+  --elements C H N O S `
+  --start -0.5 `
+  --stop 0.5 `
+  --output-dm 0.001 `
+  --dm 0.002 `
+  --rp 100000 `
+  --method cython_auto `
+  --workers 4 `
+  --format json `
+  --output window.json
+```
+
+By default, profile commands use resolving power 100,000. Pass
+`--gaussian-sigma` instead when a fixed Gaussian sigma in mass units is desired.
 
 ## CZT Windowed Profiles
 
