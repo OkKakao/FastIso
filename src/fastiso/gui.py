@@ -56,13 +56,13 @@ class FastIsoGui:
         self.formula_var = tk.StringVar(value=_DEFAULT_FORMULA)
         self.preset_var = tk.StringVar(value="common")
         self.elements_var = tk.StringVar(value=_DEFAULT_ELEMENTS)
-        self.mode_var = tk.StringVar(value="residual")
+        self.mode_var = tk.StringVar(value="auto")
         self.start_var = tk.StringVar(value="-0.5")
         self.stop_var = tk.StringVar(value="0.5")
-        self.output_dm_var = tk.StringVar(value="0.001")
+        self.output_dm_var = tk.StringVar(value="")
         self.points_var = tk.StringVar(value="")
         self.dm_var = tk.StringVar(value="0.002")
-        self.auto_grid_var = tk.BooleanVar(value=False)
+        self.auto_grid_var = tk.BooleanVar(value=True)
         self.samples_per_fwhm_var = tk.StringVar(value="8.0")
         self.min_fft_var = tk.StringVar(value="32768")
         self.safety_sigma_var = tk.StringVar(value="6.0")
@@ -108,7 +108,7 @@ class FastIsoGui:
         mode = ttk.Combobox(
             controls,
             textvariable=self.mode_var,
-            values=("residual", "mass", "adaptive", "full"),
+            values=("auto", "full"),
             state="readonly",
             width=34,
         )
@@ -287,8 +287,8 @@ class FastIsoGui:
 
     def _sync_mode_state(self) -> None:
         mode = self.mode_var.get()
-        start_stop_state = "normal" if mode in {"residual", "mass"} else "disabled"
-        output_state = "normal" if mode != "full" else "disabled"
+        start_stop_state = "disabled"
+        output_state = "normal" if mode == "auto" else "disabled"
         self.start_entry.configure(state=start_stop_state)
         self.stop_entry.configure(state=start_stop_state)
         self.output_dm_entry.configure(state=output_state)
@@ -412,10 +412,7 @@ class FastIsoGui:
             "workers": _optional_int(self.workers_var.get(), "Workers"),
         }
         if mode != "full":
-            settings["window_mode"] = mode
-            if mode in {"residual", "mass"}:
-                settings["start"] = _required_float(self.start_var.get(), "Start")
-                settings["stop"] = _required_float(self.stop_var.get(), "Stop")
+            settings["window_mode"] = "auto" if mode == "auto" else mode
             settings["output_dm"] = _optional_float(self.output_dm_var.get(), "Output dm")
             settings["points"] = _optional_int(self.points_var.get(), "Points")
             settings["auto_window_sigma"] = _required_float(
@@ -426,8 +423,6 @@ class FastIsoGui:
                 self.auto_window_min_half_width_var.get(),
                 "Auto min half-width",
             )
-            if settings["output_dm"] is None and settings["points"] is None:
-                raise ValueError("Pass Output dm or Points for window mode")
         return settings
 
     def _render_result(self, result: dict[str, Any]) -> None:
@@ -463,6 +458,7 @@ class FastIsoGui:
             f"Formulas: {', '.join(result['formulas'])}",
             f"Method: {metadata['method']}",
             f"Transform: {metadata['transform']}",
+            f"Profile backend: {metadata.get('profile_backend', 'ft')}",
             f"Resource: {metadata['resource']} ({metadata['isotope_data_version']})",
             f"Spectral elements: {', '.join(metadata['spectral_elements']) or '(none)'}",
             f"dm: {metadata['dm']}",
@@ -472,9 +468,13 @@ class FastIsoGui:
             f"table memory: {metadata['table_nbytes']} bytes",
         ]
         if "window_mode" in metadata:
+            requested = metadata.get("requested_window_mode")
+            mode_text = metadata["window_mode"]
+            if requested is not None:
+                mode_text = f"{requested} -> {mode_text}"
             lines.append(
                 "window: "
-                f"{metadata['window_mode']} "
+                f"{mode_text} "
                 f"[{metadata['window_start']:.6g}, {metadata['window_stop']:.6g}]"
             )
         if "auto_window_method" in metadata:

@@ -42,6 +42,7 @@ Implemented:
 - CZT windowed profile evaluation;
 - versioned isotope data registry and presets;
 - monoisotopic element mass-shift handling;
+- small-state exact Gaussian bin-profile backend for narrow isotope patterns;
 - command-line interface;
 - portable Python tkinter GUI;
 - FastAPI prototype endpoint: `/simulate/window`;
@@ -116,8 +117,9 @@ Simulate a full dense profile as CSV:
   --output profile.csv
 ```
 
-Simulate only a local CZT window while keeping the table spacing separate from
-the output spacing:
+Simulate only a local window while keeping the table spacing separate from the
+output spacing. With `--start/--stop`, the default `auto` window mode treats the
+range as residual mass relative to the formula mean:
 
 ```powershell
 .\.venv\Scripts\fastiso window C500H800N125O200S10 `
@@ -137,8 +139,8 @@ By default, profile commands use resolving power 100,000. Pass
 `--gaussian-sigma` instead when a fixed Gaussian sigma in mass units is desired.
 
 For small or skewed formulas, a mean-centered fixed residual window can miss the
-largest peak. Use adaptive mode to choose a residual window from the estimated
-isotope support:
+largest peak. Use adaptive mode, or omit `--start/--stop` in the default `auto`
+mode, to choose a residual window from the estimated isotope support:
 
 ```powershell
 .\.venv\Scripts\fastiso window S10 `
@@ -150,8 +152,10 @@ isotope support:
 
 For small formulas, adaptive mode first tries exact isotope-support windowing
 with `--auto-window-cutoff` and falls back to sigma-based sizing when the exact
-support would be too large. This keeps all meaningful peaks in view for cases
-such as `Cl` through `Cl6`:
+support would be too large. When the exact support is small enough, FastIso also
+uses a direct Gaussian bin-profile backend instead of FT/CZT reconstruction.
+This avoids ringing and keeps all meaningful peaks in view for cases such as
+`Cl` through `Cl6`:
 
 ```powershell
 .\.venv\Scripts\fastiso window Cl Cl2 Cl3 Cl4 Cl5 Cl6 `
@@ -160,9 +164,10 @@ such as `Cl` through `Cl6`:
   --auto-grid
 ```
 
-Adaptive mode solves the window placement problem. Very narrow peaks may still
-need `--auto-grid`, a smaller `--dm`, or larger `--gaussian-sigma` to avoid
-sinc-like ringing in the sampled dense profile.
+Adaptive mode solves the window placement problem. For large formulas where the
+exact backend is not used, very narrow peaks may still need `--auto-grid`, a
+smaller `--dm`, or larger `--gaussian-sigma` to avoid sinc-like ringing in the
+sampled dense profile.
 
 Use auto-grid when the desired resolving power or Gaussian width should control
 the sampling grid:
@@ -207,9 +212,9 @@ or:
 ```
 
 The GUI accepts the same formula syntax as the CLI, including adjacent and
-nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Choose the
-`adaptive` mode when the main isotope envelope is not centered near the mean
-mass, and enable Auto grid when narrow peaks show ringing.
+nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Its default
+`auto` mode chooses an adaptive local window and enables Auto grid; choose
+`full` only when a complete dense profile is needed.
 
 ## CZT Windowed Profiles
 

@@ -11,6 +11,7 @@ from math import log, sqrt
 from typing import Any, TextIO
 
 import numpy as np
+from scipy.special import erf
 
 from .isotopes import (
     IsotopePattern,
@@ -115,11 +116,12 @@ def _add_window_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--stop", type=float, default=None, help="window stop")
     parser.add_argument(
         "--window-mode",
-        choices=("residual", "mass", "adaptive"),
-        default="residual",
+        choices=("auto", "adaptive", "residual", "mass"),
+        default="auto",
         help=(
-            "residual is relative to formula mean mass; mass is absolute; "
-            "adaptive chooses a residual window from profile sigma"
+            "auto uses start/stop as a residual window when provided, otherwise "
+            "chooses an adaptive residual window; residual and mass are retained "
+            "for explicit advanced use"
         ),
     )
     parser.add_argument("--output-dm", type=float, default=None)
@@ -269,6 +271,9 @@ def simulate_profiles(
     auto_window_cutoff: float = 1e-8,
     auto_window_max_states: int = 200_000,
 ) -> dict[str, Any]:
+    requested_window_mode = window_mode
+    if window_mode == "auto":
+        window_mode = "residual" if start is not None or stop is not None else "adaptive"
     if resolving_power is None and gaussian_sigma is None:
         resolving_power = 100_000.0
     if resolving_power is not None and gaussian_sigma is not None:
@@ -337,16 +342,30 @@ def simulate_profiles(
             workers=workers,
         )
     elif window_mode == "residual":
-        mass_axis, profiles, info = table.mass_profile_window_many_counts(
+        exact_result = _exact_gaussian_window_many_counts(
+            table,
             counts,
             residual_start=float(start),
             residual_stop=float(stop),
             output_dm=window_output_dm,
             n_points=points,
-            method=selected_method,
             gaussian_sigma=effective_sigma,
-            workers=workers,
+            probability_cutoff=auto_window_cutoff,
+            max_states=auto_window_max_states,
         )
+        if exact_result is None:
+            mass_axis, profiles, info = table.mass_profile_window_many_counts(
+                counts,
+                residual_start=float(start),
+                residual_stop=float(stop),
+                output_dm=window_output_dm,
+                n_points=points,
+                method=selected_method,
+                gaussian_sigma=effective_sigma,
+                workers=workers,
+            )
+        else:
+            mass_axis, profiles, info = exact_result
     elif window_mode == "adaptive":
         actual_window_start, actual_window_stop, adaptive_window_method = _adaptive_residual_window(
             table,
@@ -357,16 +376,30 @@ def simulate_profiles(
             probability_cutoff=auto_window_cutoff,
             max_states=auto_window_max_states,
         )
-        mass_axis, profiles, info = table.mass_profile_window_many_counts(
+        exact_result = _exact_gaussian_window_many_counts(
+            table,
             counts,
             residual_start=actual_window_start,
             residual_stop=actual_window_stop,
             output_dm=window_output_dm,
             n_points=points,
-            method=selected_method,
             gaussian_sigma=effective_sigma,
-            workers=workers,
+            probability_cutoff=auto_window_cutoff,
+            max_states=auto_window_max_states,
         )
+        if exact_result is None:
+            mass_axis, profiles, info = table.mass_profile_window_many_counts(
+                counts,
+                residual_start=actual_window_start,
+                residual_stop=actual_window_stop,
+                output_dm=window_output_dm,
+                n_points=points,
+                method=selected_method,
+                gaussian_sigma=effective_sigma,
+                workers=workers,
+            )
+        else:
+            mass_axis, profiles, info = exact_result
         info["auto_window_method"] = adaptive_window_method
     elif window_mode == "mass":
         shifted_start = float(start) - mass_shifts
@@ -393,7 +426,7 @@ def simulate_profiles(
         info = dict(infos[0])
         info["mean_masses"] = table.mean_mass_many_counts(counts)
     else:
-        raise ValueError("window_mode must be residual, mass, or adaptive")
+        raise ValueError("window_mode must be auto, residual, mass, or adaptive")
 
     mass_axis = mass_axis + mass_shifts[:, None]
     info_mean = np.asarray(info.get("mean_masses", table.mean_mass_many_counts(counts)))
@@ -409,6 +442,7 @@ def simulate_profiles(
         "method": info["method"],
         "requested_method": method,
         "transform": info.get("transform", "fast_odd_irfft"),
+        "profile_backend": info.get("profile_backend", "ft"),
         "dm": table.dm,
         "requested_dm": requested_dm,
         "auto_grid": bool(auto_grid),
@@ -424,6 +458,11 @@ def simulate_profiles(
             None if effective_sigma is None else np.asarray(effective_sigma).tolist()
         ),
     }
+    if "exact_state_counts" in info:
+        metadata["exact_state_counts"] = np.asarray(info["exact_state_counts"]).tolist()
+        metadata["exact_probability_sums"] = np.asarray(
+            info["exact_probability_sums"]
+        ).tolist()
     if window_mode is not None:
         metadata.update(
             {
@@ -432,6 +471,8 @@ def simulate_profiles(
                 "window_stop": float(actual_window_stop),
             }
         )
+        if requested_window_mode is not None and requested_window_mode != window_mode:
+            metadata["requested_window_mode"] = requested_window_mode
         if window_mode == "adaptive":
             metadata["auto_window_sigma"] = float(auto_window_sigma)
             metadata["auto_window_min_half_width"] = float(auto_window_min_half_width)
@@ -532,6 +573,105 @@ def _auto_grid_dm(
     return min_fwhm / float(samples_per_fwhm)
 
 
+def _exact_gaussian_window_many_counts(
+    table: CenteredLogPhaseTable,
+    counts: np.ndarray,
+    *,
+    residual_start: float,
+    residual_stop: float,
+    output_dm: float | None,
+    n_points: int | None,
+    gaussian_sigma: float | np.ndarray | None,
+    probability_cutoff: float,
+    max_states: int,
+) -> tuple[np.ndarray, np.ndarray, dict[str, Any]] | None:
+    sigma = _sigma_vector(gaussian_sigma, counts.shape[0])
+    if sigma is None or np.any(sigma <= 0.0):
+        return None
+    output_axis = _window_output_axis(
+        residual_start,
+        residual_stop,
+        output_dm=output_dm,
+        n_points=n_points,
+    )
+    if output_axis.shape[0] == 1:
+        axis_step = table.dm
+    else:
+        axis_step = float(output_axis[1] - output_axis[0])
+    states_by_row: list[dict[float, float]] = []
+    state_counts: list[int] = []
+    probability_sums: list[float] = []
+    for row_counts in counts:
+        states = _exact_states_for_count_row(
+            table,
+            row_counts,
+            probability_cutoff=probability_cutoff,
+            max_states=max_states,
+        )
+        if states is None:
+            return None
+        states_by_row.append(states)
+        state_counts.append(len(states))
+        probability_sums.append(float(sum(states.values())))
+    if sum(state_counts) * output_axis.shape[0] > 20_000_000:
+        return None
+
+    profiles = np.zeros((counts.shape[0], output_axis.shape[0]), dtype=np.float64)
+    lower_edges = output_axis - 0.5 * axis_step
+    upper_edges = output_axis + 0.5 * axis_step
+    root_two = sqrt(2.0)
+    for row_idx, states in enumerate(states_by_row):
+        centers = np.fromiter(states.keys(), dtype=np.float64)
+        probabilities = np.fromiter(states.values(), dtype=np.float64)
+        z_upper = (upper_edges[None, :] - centers[:, None]) / (root_two * sigma[row_idx])
+        z_lower = (lower_edges[None, :] - centers[:, None]) / (root_two * sigma[row_idx])
+        bin_probabilities = 0.5 * (erf(z_upper) - erf(z_lower))
+        profiles[row_idx] = probabilities @ bin_probabilities
+
+    mean_masses = table.mean_mass_many_counts(counts)
+    mass_axis = mean_masses[:, None] + output_axis[None, :]
+    info: dict[str, Any] = {
+        "method": "exact_gaussian",
+        "transform": "direct_gaussian_bins",
+        "profile_backend": "exact_gaussian",
+        "dm": table.dm,
+        "output_dm": axis_step,
+        "n_fft": table.n_fft,
+        "n_points": output_axis.shape[0],
+        "mean_masses": mean_masses,
+        "residual_axis": output_axis,
+        "exact_state_counts": np.array(state_counts, dtype=np.int64),
+        "exact_probability_sums": np.array(probability_sums, dtype=np.float64),
+    }
+    return mass_axis, profiles, info
+
+
+def _window_output_axis(
+    start: float,
+    stop: float,
+    *,
+    output_dm: float | None,
+    n_points: int | None,
+) -> np.ndarray:
+    start = float(start)
+    stop = float(stop)
+    if stop < start:
+        raise ValueError("window stop must be greater than or equal to start")
+    if n_points is not None:
+        n_points = int(n_points)
+        if n_points < 1:
+            raise ValueError("points must be positive")
+        return np.linspace(start, stop, n_points, dtype=np.float64)
+    if output_dm is None:
+        raise ValueError("Pass output_dm or n_points")
+    output_dm = float(output_dm)
+    if output_dm <= 0.0:
+        raise ValueError("output_dm must be positive")
+    count = int(np.floor((stop - start) / output_dm + 0.5)) + 1
+    axis = start + output_dm * np.arange(count, dtype=np.float64)
+    return axis[axis <= stop + 0.5 * output_dm]
+
+
 def _adaptive_residual_window(
     table: CenteredLogPhaseTable,
     counts: np.ndarray,
@@ -608,6 +748,25 @@ def _exact_support_for_count_row(
     probability_cutoff: float,
     max_states: int,
 ) -> tuple[float, float] | None:
+    states = _exact_states_for_count_row(
+        table,
+        counts,
+        probability_cutoff=probability_cutoff,
+        max_states=max_states,
+    )
+    if states is None:
+        return None
+    masses = np.fromiter(states.keys(), dtype=np.float64)
+    return float(np.min(masses)), float(np.max(masses))
+
+
+def _exact_states_for_count_row(
+    table: CenteredLogPhaseTable,
+    counts: np.ndarray,
+    *,
+    probability_cutoff: float,
+    max_states: int,
+) -> dict[float, float] | None:
     states = {0.0: 1.0}
     for element_idx, count in enumerate(counts):
         atom_count = int(count)
@@ -635,8 +794,7 @@ def _exact_support_for_count_row(
             states = next_states
             if len(states) > max_states:
                 return None
-    masses = np.fromiter(states.keys(), dtype=np.float64)
-    return float(np.min(masses)), float(np.max(masses))
+    return states
 
 
 def _sigma_vector(

@@ -2,6 +2,7 @@ import csv
 import json
 import math
 
+import numpy as np
 import pytest
 
 from fastiso.cli import main, simulate_profiles
@@ -194,11 +195,13 @@ def test_adaptive_window_uses_exact_support_for_chlorine_series():
     metadata = result["metadata"]
 
     assert metadata["auto_window_method"] == "exact_support"
+    assert metadata["profile_backend"] == "exact_gaussian"
     assert metadata["window_start"] == pytest.approx(-3.004571, abs=1e-4)
     assert metadata["window_stop"] == pytest.approx(9.177728, abs=1e-4)
 
     mean_masses = metadata["total_mean_masses"]
     for row_idx, formula in enumerate(formulas):
+        intensity = result["intensity"][row_idx]
         count = row_idx + 1
         residual_axis = [
             mass - mean_masses[row_idx]
@@ -208,6 +211,8 @@ def test_adaptive_window_uses_exact_support_for_chlorine_series():
         heavy_peak = count * 1.5129547232206347
         assert min(residual_axis) <= light_peak
         assert max(residual_axis) >= heavy_peak
+        assert np.min(intensity) >= 0.0
+        assert np.sum(intensity) == pytest.approx(1.0)
 
 
 def test_cli_auto_grid_reduces_single_atom_ringing(capsys):
@@ -242,7 +247,8 @@ def test_cli_auto_grid_reduces_single_atom_ringing(capsys):
     assert metadata["auto_grid"] is True
     assert metadata["dm"] < 0.0001
     assert metadata["output_dm"] == pytest.approx(metadata["dm"])
-    assert min(intensity) > -1e-6
+    assert metadata["profile_backend"] == "exact_gaussian"
+    assert min(intensity) >= 0.0
     assert max(intensity) > 0.1
 
 
