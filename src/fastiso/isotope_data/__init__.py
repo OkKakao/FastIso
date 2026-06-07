@@ -1,0 +1,1 @@
+"""Packaged isotope data resources."""

@@ -1,0 +1,116 @@
+{
+  "source": "IsoSpecPy.PeriodicTbl extracted from the local benchmark environment; prototype natural isotope dataset for FastIso development.",
+  "version": "common-isospecpy-prototype-v1",
+  "generated_at": "2026-06-07",
+  "elements": {
+    "H": [
+      {"isotope": 1, "mass": 1.00782503227, "abundance": 0.9998842901643079},
+      {"isotope": 2, "mass": 2.01410177819, "abundance": 0.00011570983569203331}
+    ],
+    "Li": [
+      {"isotope": 6, "mass": 6.0151228871, "abundance": 0.07593392528597712},
+      {"isotope": 7, "mass": 7.016003443, "abundance": 0.9240660747140228}
+    ],
+    "B": [
+      {"isotope": 10, "mass": 10.0129373, "abundance": 0.1994808306709265},
+      {"isotope": 11, "mass": 11.0093053, "abundance": 0.8005191693290734}
+    ],
+    "C": [
+      {"isotope": 12, "mass": 12.0, "abundance": 0.9892119418504669},
+      {"isotope": 13, "mass": 13.0033548352, "abundance": 0.010788058149533084}
+    ],
+    "N": [
+      {"isotope": 14, "mass": 14.0030740042, "abundance": 0.9963580145679417},
+      {"isotope": 15, "mass": 15.0001088994, "abundance": 0.0036419854320582715}
+    ],
+    "O": [
+      {"isotope": 16, "mass": 15.9949146202, "abundance": 0.997567609729561},
+      {"isotope": 17, "mass": 16.9991317576, "abundance": 0.00038099847600609594},
+      {"isotope": 18, "mass": 17.9991596137, "abundance": 0.002051391794432822}
+    ],
+    "F": [
+      {"isotope": 19, "mass": 18.9984031637, "abundance": 1.0}
+    ],
+    "Na": [
+      {"isotope": 23, "mass": 22.989769282, "abundance": 1.0}
+    ],
+    "Mg": [
+      {"isotope": 24, "mass": 23.985041701, "abundance": 0.7898768098552116},
+      {"isotope": 25, "mass": 24.98583703, "abundance": 0.10000199984001279},
+      {"isotope": 26, "mass": 25.98259302, "abundance": 0.11012119030477562}
+    ],
+    "Al": [
+      {"isotope": 27, "mass": 26.98153858, "abundance": 1.0}
+    ],
+    "Si": [
+      {"isotope": 28, "mass": 27.9769265353, "abundance": 0.9222208333499997},
+      {"isotope": 29, "mass": 28.9764946653, "abundance": 0.04685843769874761},
+      {"isotope": 30, "mass": 29.973770012, "abundance": 0.03092072895125258}
+    ],
+    "P": [
+      {"isotope": 31, "mass": 30.9737619986, "abundance": 1.0}
+    ],
+    "S": [
+      {"isotope": 32, "mass": 31.9720711741, "abundance": 0.9498500119990401},
+      {"isotope": 33, "mass": 32.9714589101, "abundance": 0.00751939844812415},
+      {"isotope": 34, "mass": 33.96786703, "abundance": 0.04252059835213182},
+      {"isotope": 36, "mass": 35.9670812, "abundance": 0.00010999120070394368}
+    ],
+    "Cl": [
+      {"isotope": 35, "mass": 34.96885273, "abundance": 0.7575948481030379},
+      {"isotope": 37, "mass": 36.96590264, "abundance": 0.24240515189696205}
+    ],
+    "K": [
+      {"isotope": 39, "mass": 38.963706493, "abundance": 0.9325805260710844},
+      {"isotope": 40, "mass": 39.96399824, "abundance": 0.00011709988524211245},
+      {"isotope": 41, "mass": 40.961825263, "abundance": 0.06730237404367342}
+    ],
+    "Ca": [
+      {"isotope": 40, "mass": 39.96259092, "abundance": 0.969400838426727},
+      {"isotope": 42, "mass": 41.9586181, "abundance": 0.006472228417153706},
+      {"isotope": 43, "mass": 42.9587662, "abundance": 0.0013509850581052572},
+      {"isotope": 44, "mass": 43.9554822, "abundance": 0.020860869278785776},
+      {"isotope": 46, "mass": 45.953692, "abundance": 0.00004299952442525985},
+      {"isotope": 48, "mass": 47.95252289, "abundance": 0.0018720792948029993}
+    ],
+    "Fe": [
+      {"isotope": 54, "mass": 53.9396093, "abundance": 0.05845279272120807},
+      {"isotope": 56, "mass": 55.9349363, "abundance": 0.9175324978567759},
+      {"isotope": 57, "mass": 56.9353933, "abundance": 0.021190743592002535},
+      {"isotope": 58, "mass": 57.9332743, "abundance": 0.0028239658300134567}
+    ],
+    "Ni": [
+      {"isotope": 58, "mass": 57.9353423, "abundance": 0.6807690952313276},
+      {"isotope": 60, "mass": 59.9307863, "abundance": 0.26223041961067117},
+      {"isotope": 61, "mass": 60.9310563, "abundance": 0.011399083035777892},
+      {"isotope": 62, "mass": 61.9283454, "abundance": 0.03634625025344895},
+      {"isotope": 64, "mass": 63.9279674, "abundance": 0.0092551518687743}
+    ],
+    "Cu": [
+      {"isotope": 63, "mass": 62.9295984, "abundance": 0.6914942551723448},
+      {"isotope": 65, "mass": 64.9277906, "abundance": 0.30850574482765514}
+    ],
+    "Zn": [
+      {"isotope": 64, "mass": 63.9291426, "abundance": 0.49164571388582023},
+      {"isotope": 66, "mass": 65.9260347, "abundance": 0.2773255087401838},
+      {"isotope": 67, "mass": 66.9271287, "abundance": 0.040405292597461666},
+      {"isotope": 68, "mass": 67.9248457, "abundance": 0.18451510349757314},
+      {"isotope": 70, "mass": 69.925322, "abundance": 0.006108381278961075}
+    ],
+    "Se": [
+      {"isotope": 74, "mass": 73.92247591, "abundance": 0.00893842683687671},
+      {"isotope": 76, "mass": 75.91921372, "abundance": 0.09371250659883859},
+      {"isotope": 77, "mass": 76.91991426, "abundance": 0.07630257074754843},
+      {"isotope": 78, "mass": 77.9173092, "abundance": 0.2376861672345667},
+      {"isotope": 80, "mass": 79.9165229, "abundance": 0.4960536945497592},
+      {"isotope": 82, "mass": 81.9167001, "abundance": 0.08730663403241029}
+    ],
+    "Br": [
+      {"isotope": 79, "mass": 78.9183381, "abundance": 0.5068988961766117},
+      {"isotope": 81, "mass": 80.9162901, "abundance": 0.49310110382338823}
+    ],
+    "I": [
+      {"isotope": 127, "mass": 126.904473, "abundance": 1.0}
+    ]
+  }
+}
