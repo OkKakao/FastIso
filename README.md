@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-123 passed, 6 skipped
+125 passed, 6 skipped
 ```
 
 ## Installation
@@ -150,6 +150,10 @@ and lets the formula isotope variance plus Gaussian broadening determine the
 final `n_fft`. Pass an integer only when you want to force a larger reusable
 table floor.
 
+Use `--normalize sum` to scale each returned profile row so the sampled output
+window sums to 1, or `--normalize max` to scale each row so its largest point is
+1. The default `--normalize none` preserves raw sampled/bin intensities.
+
 For small or skewed formulas, a mean-centered fixed residual window can miss the
 largest peak. Use adaptive mode, or omit `--start/--stop` in the default `auto`
 mode, to choose a residual window from the estimated isotope support:
@@ -228,7 +232,8 @@ nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Its default
 `auto` mode chooses an adaptive local window and enables Auto grid; choose
 `full` only when a complete dense profile is needed. The preview table and plot
 use peak-preserving display sampling so narrow small-formula isotope peaks are
-not hidden by dense output grids.
+not hidden by dense output grids. The GUI also exposes the same `none`, `sum`,
+and `max` normalization modes.
 
 ## CZT Windowed Profiles
 

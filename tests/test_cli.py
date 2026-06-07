@@ -274,6 +274,36 @@ def test_cli_auto_grid_reduces_single_atom_ringing(capsys):
     assert max(intensity) > 0.1
 
 
+def test_profile_normalization_modes():
+    sum_result = simulate_profiles(
+        ["S"],
+        elements=["S"],
+        window_mode="auto",
+        auto_grid=True,
+        min_fft_len=255,
+        method="log_pruned",
+        storage_mode="research",
+        normalize="sum",
+    )
+    max_result = simulate_profiles(
+        ["S"],
+        elements=["S"],
+        window_mode="auto",
+        auto_grid=True,
+        min_fft_len=255,
+        method="log_pruned",
+        storage_mode="research",
+        normalize="max",
+    )
+
+    assert np.sum(sum_result["intensity"][0]) == pytest.approx(1.0)
+    assert sum_result["metadata"]["normalization"] == "sum"
+    assert sum_result["metadata"]["profile_sums"][0] == pytest.approx(1.0)
+    assert np.max(max_result["intensity"][0]) == pytest.approx(1.0)
+    assert max_result["metadata"]["normalization"] == "max"
+    assert max_result["metadata"]["profile_maxima"][0] == pytest.approx(1.0)
+
+
 def test_cli_gaussian_sigma_disables_default_resolving_power(capsys):
     assert main(
         [

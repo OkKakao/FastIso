@@ -40,6 +40,7 @@ def simulate_window(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("Pass either resolving_power or gaussian_sigma, not both")
     output_dm = float(payload.get("output_dm", table_dm))
     method = _resolve_method(str(payload.get("method") or "cython_auto"))
+    normalize = str(payload.get("normalize") or "none").lower()
     resource = str(payload.get("isotope_resource") or ("full" if preset == "full" else "common"))
     safety_sigma = float(payload.get("safety_sigma", 6.0))
     storage_mode = _storage_mode_for_method(method)
@@ -103,6 +104,7 @@ def simulate_window(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("window.mode must be residual, mass, mz, or absolute")
 
     mass_axis, profile, info = table.mass_profile_window_many_counts(counts, **kwargs)
+    profile = _normalize_profiles(profile, normalize)
     if components.mass_shift != 0.0:
         mass_axis = mass_axis + components.mass_shift
         info["mean_masses"] = np.asarray(info["mean_masses"]) + components.mass_shift
@@ -142,6 +144,9 @@ def simulate_window(payload: Mapping[str, Any]) -> dict[str, Any]:
             "n_fft": table.n_fft,
             "n_points": int(info["n_points"]),
             "workers": workers,
+            "normalization": normalize,
+            "profile_sums": np.sum(profile, axis=1).tolist(),
+            "profile_maxima": np.max(profile, axis=1).tolist(),
             "table_storage": table.storage_mode,
             "attenuation_dtype": str(table.attenuation.dtype),
             "table_nbytes": table.table_nbytes,
@@ -345,6 +350,22 @@ def _resolve_min_fft_len(value: object) -> tuple[int, bool]:
     if result < 1:
         raise ValueError("min_fft_len must be positive")
     return result, False
+
+
+def _normalize_profiles(profiles: np.ndarray, mode: str) -> np.ndarray:
+    mode = str(mode or "none").lower()
+    if mode == "none":
+        return profiles
+    if mode not in {"sum", "max"}:
+        raise ValueError("normalize must be none, sum, or max")
+    normalized = np.array(profiles, dtype=np.float64, copy=True)
+    if mode == "sum":
+        factors = np.sum(normalized, axis=1)
+    else:
+        factors = np.max(normalized, axis=1)
+    valid = np.isfinite(factors) & (factors != 0.0)
+    normalized[valid] = normalized[valid] / factors[valid, None]
+    return normalized
 
 
 def _optional_int(value: object) -> int | None:

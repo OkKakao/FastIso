@@ -118,6 +118,12 @@ def _add_profile_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--method", default="cython_auto")
     parser.add_argument("--storage-mode", choices=("research", "production", "minimal", "auto"), default="auto")
     parser.add_argument("--workers", type=int, default=None)
+    parser.add_argument(
+        "--normalize",
+        choices=("none", "sum", "max"),
+        default="none",
+        help="normalize each output profile row",
+    )
     parser.add_argument("--format", choices=("csv", "json"), default="csv")
     parser.add_argument("--output", "-o", default=None, help="output path; default stdout")
 
@@ -159,6 +165,7 @@ def _run_simulate(args: argparse.Namespace) -> int:
         method=args.method,
         storage_mode=args.storage_mode,
         workers=args.workers,
+        normalize=args.normalize,
     )
     _write_profile_result(result, output_format=args.format, output_path=args.output)
     return 0
@@ -180,6 +187,7 @@ def _run_window(args: argparse.Namespace) -> int:
         method=args.method,
         storage_mode=args.storage_mode,
         workers=args.workers,
+        normalize=args.normalize,
         window_mode=args.window_mode,
         start=args.start,
         stop=args.stop,
@@ -272,6 +280,7 @@ def simulate_profiles(
     method: str = "cython_auto",
     storage_mode: str = "auto",
     workers: int | None = None,
+    normalize: str = "none",
     window_mode: str | None = None,
     start: float | None = None,
     stop: float | None = None,
@@ -442,6 +451,7 @@ def simulate_profiles(
         raise ValueError("window_mode must be auto, residual, mass, or adaptive")
 
     mass_axis = mass_axis + mass_shifts[:, None]
+    profiles = _normalize_profiles(profiles, normalize)
     info_mean = np.asarray(info.get("mean_masses", table.mean_mass_many_counts(counts)))
     info["mean_masses"] = info_mean + mass_shifts
     metadata = {
@@ -469,6 +479,9 @@ def simulate_profiles(
         "storage_mode": table.storage_mode,
         "table_nbytes": table.table_nbytes,
         "workers": workers,
+        "normalization": normalize,
+        "profile_sums": np.sum(profiles, axis=1).tolist(),
+        "profile_maxima": np.max(profiles, axis=1).tolist(),
         "resolving_power": resolving_power,
         "gaussian_sigma": (
             None if effective_sigma is None else np.asarray(effective_sigma).tolist()
@@ -605,6 +618,22 @@ def _resolve_min_fft_len(value: int | str | None) -> tuple[int, bool]:
     if parsed < 1:
         raise ValueError("min_fft_len must be positive")
     return parsed, False
+
+
+def _normalize_profiles(profiles: np.ndarray, mode: str) -> np.ndarray:
+    mode = str(mode or "none").lower()
+    if mode == "none":
+        return profiles
+    if mode not in {"sum", "max"}:
+        raise ValueError("normalize must be none, sum, or max")
+    normalized = np.array(profiles, dtype=np.float64, copy=True)
+    if mode == "sum":
+        factors = np.sum(normalized, axis=1)
+    else:
+        factors = np.max(normalized, axis=1)
+    valid = np.isfinite(factors) & (factors != 0.0)
+    normalized[valid] = normalized[valid] / factors[valid, None]
+    return normalized
 
 
 def _exact_gaussian_window_many_counts(

@@ -93,6 +93,26 @@ def test_simulate_window_defaults_to_auto_min_fft_len():
     assert metadata["n_fft"] < 2048
 
 
+def test_simulate_window_supports_profile_normalization():
+    _TABLE_CACHE.clear()
+
+    response = simulate_window({
+        "formula": "C6H12O6",
+        "elements": ["C", "H", "O"],
+        "table_dm": 0.01,
+        "resolving_power": 100_000,
+        "window": {"mode": "residual", "start": -0.05, "stop": 0.05},
+        "output_dm": 0.01,
+        "method": "log_pruned",
+        "normalize": "max",
+    })
+
+    metadata = response["metadata"]
+    assert metadata["normalization"] == "max"
+    assert max(response["intensity"]) == pytest.approx(1.0)
+    assert metadata["profile_maxima"][0] == pytest.approx(1.0)
+
+
 def test_simulate_window_treats_monoisotopic_elements_as_mass_shift():
     _TABLE_CACHE.clear()
     registry = load_isotope_registry()

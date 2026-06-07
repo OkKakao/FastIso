@@ -74,6 +74,7 @@ class FastIsoGui:
         self.method_var = tk.StringVar(value="cython_auto")
         self.storage_var = tk.StringVar(value="auto")
         self.workers_var = tk.StringVar(value="")
+        self.normalize_var = tk.StringVar(value="none")
         self.auto_window_sigma_var = tk.StringVar(value="6.0")
         self.auto_window_min_half_width_var = tk.StringVar(value="0.1")
         self.output_format_var = tk.StringVar(value="csv")
@@ -189,6 +190,17 @@ class FastIsoGui:
         row += 1
 
         row = self._add_entry(controls, row, "Workers", self.workers_var, width=36)
+
+        ttk.Label(controls, text="Normalize").grid(row=row, column=0, sticky="w", pady=4)
+        ttk.Combobox(
+            controls,
+            textvariable=self.normalize_var,
+            values=("none", "sum", "max"),
+            state="readonly",
+            width=34,
+        ).grid(row=row, column=1, sticky="ew", pady=4)
+        row += 1
+
         row = self._add_entry(
             controls,
             row,
@@ -466,6 +478,7 @@ class FastIsoGui:
             "method": self.method_var.get().strip() or "cython_auto",
             "storage_mode": self.storage_var.get().strip() or "auto",
             "workers": _optional_int(self.workers_var.get(), "Workers"),
+            "normalize": self.normalize_var.get().strip() or "none",
         }
         if mode != "full":
             settings["window_mode"] = "auto" if mode == "auto" else mode
@@ -528,7 +541,10 @@ class FastIsoGui:
             f"auto grid: {metadata['auto_grid']}",
             f"min FFT: {metadata.get('requested_min_fft_len', metadata.get('min_fft_len'))}",
             f"resolving power: {metadata.get('resolving_power')}",
-            f"effective sigma: {_format_sigma_metadata(metadata.get('gaussian_sigma'))}",
+            f"effective sigma: {_format_numeric_metadata(metadata.get('gaussian_sigma'))}",
+            f"normalization: {metadata.get('normalization', 'none')}",
+            f"profile sum: {_format_numeric_metadata(metadata.get('profile_sums'))}",
+            f"profile max: {_format_numeric_metadata(metadata.get('profile_maxima'))}",
             f"n_fft: {metadata['n_fft']}",
             f"points: {metadata['n_points']}",
             f"table memory: {metadata['table_nbytes']} bytes",
@@ -656,7 +672,7 @@ def _format_float(value: float) -> str:
     return f"{float(value):.12g}"
 
 
-def _format_sigma_metadata(value: object) -> str:
+def _format_numeric_metadata(value: object) -> str:
     if value is None:
         return "None"
     array = np.asarray(value, dtype=np.float64)
