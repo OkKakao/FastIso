@@ -178,6 +178,42 @@ def test_cli_adaptive_window_includes_skewed_small_formula_base_peak(capsys):
     assert metadata["output_dm"] == pytest.approx(0.05)
 
 
+def test_cli_auto_grid_reduces_single_atom_ringing(capsys):
+    assert main(
+        [
+            "window",
+            "S",
+            "--elements",
+            "S",
+            "--start",
+            "-0.100",
+            "--stop",
+            "-0.085",
+            "--auto-grid",
+            "--samples-per-fwhm",
+            "8",
+            "--min-fft-len",
+            "32768",
+            "--method",
+            "log_pruned",
+            "--storage-mode",
+            "research",
+            "--format",
+            "json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    intensity = payload["intensity"][0]
+    metadata = payload["metadata"]
+
+    assert metadata["auto_grid"] is True
+    assert metadata["dm"] < 0.0001
+    assert metadata["output_dm"] == pytest.approx(metadata["dm"])
+    assert min(intensity) > -1e-6
+    assert max(intensity) > 0.1
+
+
 def test_cli_gaussian_sigma_disables_default_resolving_power(capsys):
     assert main(
         [

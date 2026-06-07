@@ -62,6 +62,8 @@ class FastIsoGui:
         self.output_dm_var = tk.StringVar(value="0.001")
         self.points_var = tk.StringVar(value="")
         self.dm_var = tk.StringVar(value="0.002")
+        self.auto_grid_var = tk.BooleanVar(value=False)
+        self.samples_per_fwhm_var = tk.StringVar(value="8.0")
         self.min_fft_var = tk.StringVar(value="32768")
         self.safety_sigma_var = tk.StringVar(value="6.0")
         self.rp_var = tk.StringVar(value="100000")
@@ -79,6 +81,7 @@ class FastIsoGui:
 
         self._build_ui()
         self._sync_mode_state()
+        self._sync_grid_state()
 
     def run(self) -> None:
         self.root.mainloop()
@@ -125,7 +128,22 @@ class FastIsoGui:
         ttk.Separator(controls).grid(row=row, column=0, columnspan=2, sticky="ew", pady=10)
         row += 1
 
-        row = self._add_entry(controls, row, "Table dm", self.dm_var, width=36)
+        self.dm_entry = self._entry(controls, row, "Table dm", self.dm_var)
+        row += 1
+        ttk.Checkbutton(
+            controls,
+            text="Auto grid",
+            variable=self.auto_grid_var,
+            command=self._sync_grid_state,
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=4)
+        row += 1
+        row = self._add_entry(
+            controls,
+            row,
+            "Samples/FWHM",
+            self.samples_per_fwhm_var,
+            width=36,
+        )
         row = self._add_entry(controls, row, "Min FFT", self.min_fft_var, width=36)
         row = self._add_entry(controls, row, "Safety sigma", self.safety_sigma_var, width=36)
         row = self._add_entry(controls, row, "Resolving power", self.rp_var, width=36)
@@ -276,6 +294,10 @@ class FastIsoGui:
         self.output_dm_entry.configure(state=output_state)
         self.points_entry.configure(state=output_state)
 
+    def _sync_grid_state(self) -> None:
+        state = "disabled" if self.auto_grid_var.get() else "normal"
+        self.dm_entry.configure(state=state)
+
     def parse_preview(self) -> None:
         try:
             formulas = _parse_formula_list(self.formula_var.get())
@@ -376,6 +398,11 @@ class FastIsoGui:
             "preset": self.preset_var.get().strip() or "common",
             "elements": elements,
             "dm": _required_float(self.dm_var.get(), "Table dm"),
+            "auto_grid": bool(self.auto_grid_var.get()),
+            "samples_per_fwhm": _required_float(
+                self.samples_per_fwhm_var.get(),
+                "Samples/FWHM",
+            ),
             "min_fft_len": _required_int(self.min_fft_var.get(), "Min FFT"),
             "safety_sigma": _required_float(self.safety_sigma_var.get(), "Safety sigma"),
             "resolving_power": resolving_power,
@@ -438,6 +465,8 @@ class FastIsoGui:
             f"Transform: {metadata['transform']}",
             f"Resource: {metadata['resource']} ({metadata['isotope_data_version']})",
             f"Spectral elements: {', '.join(metadata['spectral_elements']) or '(none)'}",
+            f"dm: {metadata['dm']}",
+            f"auto grid: {metadata['auto_grid']}",
             f"n_fft: {metadata['n_fft']}",
             f"points: {metadata['n_points']}",
             f"table memory: {metadata['table_nbytes']} bytes",

@@ -85,6 +85,12 @@ def _add_profile_arguments(parser: argparse.ArgumentParser) -> None:
         help="explicit spectral/preset elements; mass-only elements may be omitted",
     )
     parser.add_argument("--dm", type=float, default=0.002, help="table mass spacing")
+    parser.add_argument(
+        "--auto-grid",
+        action="store_true",
+        help="choose table/output dm from resolving power or Gaussian width",
+    )
+    parser.add_argument("--samples-per-fwhm", type=float, default=8.0)
     parser.add_argument("--min-fft-len", type=int, default=32768)
     parser.add_argument("--safety-sigma", type=float, default=6.0)
     broadening = parser.add_mutually_exclusive_group()
@@ -129,6 +135,8 @@ def _run_simulate(args: argparse.Namespace) -> int:
         resource=args.resource,
         elements=args.elements,
         dm=args.dm,
+        auto_grid=args.auto_grid,
+        samples_per_fwhm=args.samples_per_fwhm,
         min_fft_len=args.min_fft_len,
         safety_sigma=args.safety_sigma,
         resolving_power=args.resolving_power,
@@ -148,6 +156,8 @@ def _run_window(args: argparse.Namespace) -> int:
         resource=args.resource,
         elements=args.elements,
         dm=args.dm,
+        auto_grid=args.auto_grid,
+        samples_per_fwhm=args.samples_per_fwhm,
         min_fft_len=args.min_fft_len,
         safety_sigma=args.safety_sigma,
         resolving_power=args.resolving_power,
@@ -236,6 +246,8 @@ def simulate_profiles(
     resource: str | None = None,
     elements: Sequence[str] | None = None,
     dm: float = 0.002,
+    auto_grid: bool = False,
+    samples_per_fwhm: float = 8.0,
     min_fft_len: int = 32768,
     safety_sigma: float = 6.0,
     resolving_power: float | None = None,
@@ -284,6 +296,12 @@ def simulate_profiles(
     effective_sigma = gaussian_sigma
     if resolving_power is not None:
         effective_sigma = _sigma_from_resolving_power(total_mean_masses, resolving_power)
+    requested_dm = float(dm)
+    if auto_grid:
+        dm = _auto_grid_dm(
+            effective_sigma,
+            samples_per_fwhm=samples_per_fwhm,
+        )
     table_storage = _resolve_storage_mode(storage_mode)
 
     table = CenteredLogPhaseTable.build_for_counts(
@@ -382,6 +400,9 @@ def simulate_profiles(
         "requested_method": method,
         "transform": info.get("transform", "fast_odd_irfft"),
         "dm": table.dm,
+        "requested_dm": requested_dm,
+        "auto_grid": bool(auto_grid),
+        "samples_per_fwhm": float(samples_per_fwhm),
         "output_dm": info.get("output_dm", table.dm),
         "n_fft": table.n_fft,
         "n_points": int(mass_axis.shape[1]),
@@ -477,6 +498,25 @@ def _sigma_from_resolving_power(mean_mass: np.ndarray, resolving_power: float) -
         raise ValueError("resolving_power must be positive")
     fwhm = np.asarray(mean_mass, dtype=np.float64) / float(resolving_power)
     return fwhm / (2.0 * sqrt(2.0 * log(2.0)))
+
+
+def _auto_grid_dm(
+    gaussian_sigma: float | np.ndarray | None,
+    *,
+    samples_per_fwhm: float,
+) -> float:
+    if samples_per_fwhm <= 0.0:
+        raise ValueError("samples_per_fwhm must be positive")
+    if gaussian_sigma is None:
+        raise ValueError("auto_grid requires resolving_power or gaussian_sigma")
+    sigma = np.asarray(gaussian_sigma, dtype=np.float64)
+    if sigma.ndim == 0:
+        sigma = sigma[None]
+    finite_positive = sigma[np.isfinite(sigma) & (sigma > 0.0)]
+    if finite_positive.size == 0:
+        raise ValueError("auto_grid requires a positive Gaussian width")
+    min_fwhm = float(np.min(finite_positive) * (2.0 * sqrt(2.0 * log(2.0))))
+    return min_fwhm / float(samples_per_fwhm)
 
 
 def _adaptive_residual_window(

@@ -50,7 +50,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-115 passed, 6 skipped
+116 passed, 6 skipped
 ```
 
 ## Installation
@@ -152,6 +152,22 @@ Adaptive mode solves the window placement problem. Very narrow peaks may still
 need a smaller `--dm` or larger `--gaussian-sigma` to avoid sinc-like ringing in
 the sampled dense profile.
 
+Use auto-grid when the desired resolving power or Gaussian width should control
+the sampling grid:
+
+```powershell
+.\.venv\Scripts\fastiso window S `
+  --elements S `
+  --start -0.100 `
+  --stop -0.085 `
+  --auto-grid `
+  --samples-per-fwhm 8
+```
+
+With `--auto-grid`, FastIso chooses `dm` from the narrowest requested peak width
+so each FWHM has the requested number of samples. This is important for single
+atoms and small molecules, where the default `dm` can be too coarse.
+
 Bracketed formula groups are supported by the shared parser. Quote bracketed
 formulas in shells:
 
@@ -181,7 +197,7 @@ or:
 The GUI accepts the same formula syntax as the CLI, including adjacent and
 nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Choose the
 `adaptive` mode when the main isotope envelope is not centered near the mean
-mass.
+mass, and enable Auto grid when narrow peaks show ringing.
 
 ## CZT Windowed Profiles
 
