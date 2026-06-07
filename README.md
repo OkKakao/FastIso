@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-120 passed, 6 skipped
+121 passed, 6 skipped
 ```
 
 ## Installation
@@ -137,6 +137,15 @@ range as residual mass relative to the formula mean:
 
 By default, profile commands use resolving power 100,000. Pass
 `--gaussian-sigma` instead when a fixed Gaussian sigma in mass units is desired.
+`--gaussian-sigma` is the standard deviation of the Gaussian instrument
+broadening kernel on the mass axis. Resolving power is converted to this sigma
+per formula with `FWHM = mass / resolving_power` and
+`sigma = FWHM / 2.35482`.
+
+`--min-fft-len` defaults to `auto`. In this mode FastIso uses a small FFT floor
+and lets the formula isotope variance plus Gaussian broadening determine the
+final `n_fft`. Pass an integer only when you want to force a larger reusable
+table floor.
 
 For small or skewed formulas, a mean-centered fixed residual window can miss the
 largest peak. Use adaptive mode, or omit `--start/--stop` in the default `auto`

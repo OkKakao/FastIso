@@ -73,6 +73,26 @@ def test_simulate_window_default_auto_uses_production_storage_when_available():
     assert response["metadata"]["table_nbytes"] > 0
 
 
+def test_simulate_window_defaults_to_auto_min_fft_len():
+    _TABLE_CACHE.clear()
+
+    response = simulate_window({
+        "formula": "C6H12O6",
+        "elements": ["C", "H", "O"],
+        "table_dm": 0.01,
+        "resolving_power": 100_000,
+        "window": {"mode": "residual", "start": -0.05, "stop": 0.05},
+        "output_dm": 0.01,
+        "method": "log_pruned",
+    })
+
+    metadata = response["metadata"]
+    assert metadata["requested_min_fft_len"] == "auto"
+    assert metadata["auto_min_fft_len"] is True
+    assert metadata["min_fft_len"] == 255
+    assert metadata["n_fft"] < 2048
+
+
 def test_simulate_window_treats_monoisotopic_elements_as_mass_shift():
     _TABLE_CACHE.clear()
     registry = load_isotope_registry()

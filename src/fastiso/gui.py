@@ -64,7 +64,7 @@ class FastIsoGui:
         self.dm_var = tk.StringVar(value="0.002")
         self.auto_grid_var = tk.BooleanVar(value=True)
         self.samples_per_fwhm_var = tk.StringVar(value="8.0")
-        self.min_fft_var = tk.StringVar(value="32768")
+        self.min_fft_var = tk.StringVar(value="auto")
         self.safety_sigma_var = tk.StringVar(value="6.0")
         self.rp_var = tk.StringVar(value="100000")
         self.gaussian_sigma_var = tk.StringVar(value="")
@@ -403,7 +403,7 @@ class FastIsoGui:
                 self.samples_per_fwhm_var.get(),
                 "Samples/FWHM",
             ),
-            "min_fft_len": _required_int(self.min_fft_var.get(), "Min FFT"),
+            "min_fft_len": _min_fft_value(self.min_fft_var.get()),
             "safety_sigma": _required_float(self.safety_sigma_var.get(), "Safety sigma"),
             "resolving_power": resolving_power,
             "gaussian_sigma": gaussian_sigma,
@@ -470,6 +470,7 @@ class FastIsoGui:
             f"Spectral elements: {', '.join(metadata['spectral_elements']) or '(none)'}",
             f"dm: {metadata['dm']}",
             f"auto grid: {metadata['auto_grid']}",
+            f"min FFT: {metadata.get('requested_min_fft_len', metadata.get('min_fft_len'))}",
             f"n_fft: {metadata['n_fft']}",
             f"points: {metadata['n_points']}",
             f"table memory: {metadata['table_nbytes']} bytes",
@@ -664,6 +665,13 @@ def _required_int(text: str, label: str) -> int:
     if value is None:
         raise ValueError(f"{label} is required")
     return value
+
+
+def _min_fft_value(text: str) -> str | int:
+    stripped = text.strip()
+    if not stripped or stripped.lower() == "auto":
+        return "auto"
+    return _required_int(stripped, "Min FFT")
 
 
 def _optional_int(text: str, label: str) -> int | None:

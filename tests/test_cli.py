@@ -221,7 +221,7 @@ def test_adaptive_window_skips_exact_backend_for_large_default_formula():
         elements=["C", "H", "N", "O", "S"],
         window_mode="auto",
         auto_grid=True,
-        min_fft_len=255,
+        min_fft_len="auto",
         method="log_pruned",
         storage_mode="research",
     )
@@ -231,6 +231,9 @@ def test_adaptive_window_skips_exact_backend_for_large_default_formula():
     assert metadata["window_mode"] == "adaptive"
     assert metadata["auto_window_method"] == "sigma"
     assert metadata["profile_backend"] == "ft"
+    assert metadata["auto_min_fft_len"] is True
+    assert metadata["min_fft_len"] == 255
+    assert metadata["n_fft"] < 32768
     assert "exact_state_counts" not in metadata
 
 

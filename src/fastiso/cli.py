@@ -25,6 +25,7 @@ from .log_table import CenteredLogPhaseTable, has_cython_backend
 # stay on the FT/CZT backend even when exact support would be possible.
 _EXACT_PROFILE_MAX_ATOMS = 64
 _EXACT_PROFILE_MAX_STATE_POINT_PRODUCT = 8_000_000
+_AUTO_MIN_FFT_LEN = 255
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -98,7 +99,11 @@ def _add_profile_arguments(parser: argparse.ArgumentParser) -> None:
         help="choose table/output dm from resolving power or Gaussian width",
     )
     parser.add_argument("--samples-per-fwhm", type=float, default=8.0)
-    parser.add_argument("--min-fft-len", type=int, default=32768)
+    parser.add_argument(
+        "--min-fft-len",
+        default="auto",
+        help="minimum FFT length floor, or 'auto' to size from formula width",
+    )
     parser.add_argument("--safety-sigma", type=float, default=6.0)
     broadening = parser.add_mutually_exclusive_group()
     broadening.add_argument(
@@ -260,7 +265,7 @@ def simulate_profiles(
     dm: float = 0.002,
     auto_grid: bool = False,
     samples_per_fwhm: float = 8.0,
-    min_fft_len: int = 32768,
+    min_fft_len: int | str | None = "auto",
     safety_sigma: float = 6.0,
     resolving_power: float | None = None,
     gaussian_sigma: float | None = None,
@@ -319,13 +324,15 @@ def simulate_profiles(
             effective_sigma,
             samples_per_fwhm=samples_per_fwhm,
         )
+    requested_min_fft_len = min_fft_len
+    actual_min_fft_len, auto_min_fft_len = _resolve_min_fft_len(min_fft_len)
     table_storage = _resolve_storage_mode(storage_mode)
 
     table = CenteredLogPhaseTable.build_for_counts(
         counts,
         elements=spectral_elements,
         dm=dm,
-        min_fft_len=min_fft_len,
+        min_fft_len=actual_min_fft_len,
         safety_sigma=safety_sigma,
         gaussian_sigma=effective_sigma,
         attenuation_dtype=np.float32 if table_storage != "research" else np.float64,
@@ -454,6 +461,9 @@ def simulate_profiles(
         "auto_grid": bool(auto_grid),
         "samples_per_fwhm": float(samples_per_fwhm),
         "output_dm": info.get("output_dm", table.dm),
+        "min_fft_len": actual_min_fft_len,
+        "requested_min_fft_len": requested_min_fft_len,
+        "auto_min_fft_len": auto_min_fft_len,
         "n_fft": table.n_fft,
         "n_points": int(mass_axis.shape[1]),
         "storage_mode": table.storage_mode,
@@ -577,6 +587,24 @@ def _auto_grid_dm(
         raise ValueError("auto_grid requires a positive Gaussian width")
     min_fwhm = float(np.min(finite_positive) * (2.0 * sqrt(2.0 * log(2.0))))
     return min_fwhm / float(samples_per_fwhm)
+
+
+def _resolve_min_fft_len(value: int | str | None) -> tuple[int, bool]:
+    if value is None:
+        return _AUTO_MIN_FFT_LEN, True
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"", "auto"}:
+            return _AUTO_MIN_FFT_LEN, True
+        try:
+            parsed = int(text)
+        except ValueError as exc:
+            raise ValueError("min_fft_len must be a positive integer or 'auto'") from exc
+    else:
+        parsed = int(value)
+    if parsed < 1:
+        raise ValueError("min_fft_len must be positive")
+    return parsed, False
 
 
 def _exact_gaussian_window_many_counts(

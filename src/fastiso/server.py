@@ -20,6 +20,7 @@ from .log_table import CenteredLogPhaseTable, has_cython_backend
 
 
 _TABLE_CACHE: dict[tuple[TableCacheKey, str, str], CenteredLogPhaseTable] = {}
+_AUTO_MIN_FFT_LEN = 255
 
 
 def simulate_window(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -30,7 +31,8 @@ def simulate_window(payload: Mapping[str, Any]) -> dict[str, Any]:
     explicit_elements = payload.get("elements")
     elements = tuple(explicit_elements) if explicit_elements is not None else None
     table_dm = float(payload.get("table_dm", payload.get("dm", 0.002)))
-    min_fft_len = int(payload.get("min_fft_len", 32768))
+    requested_min_fft_len = payload.get("min_fft_len", "auto")
+    min_fft_len, auto_min_fft_len = _resolve_min_fft_len(requested_min_fft_len)
     default_resolving_power = None if "gaussian_sigma" in payload else 100_000.0
     resolving_power = _optional_float(payload.get("resolving_power", default_resolving_power))
     gaussian_sigma = _optional_float(payload.get("gaussian_sigma"))
@@ -134,6 +136,9 @@ def simulate_window(payload: Mapping[str, Any]) -> dict[str, Any]:
             "runtime_s": runtime_s,
             "table_dm": table.dm,
             "output_dm": float(info["output_dm"]),
+            "min_fft_len": min_fft_len,
+            "requested_min_fft_len": requested_min_fft_len,
+            "auto_min_fft_len": auto_min_fft_len,
             "n_fft": table.n_fft,
             "n_points": int(info["n_points"]),
             "workers": workers,
@@ -322,6 +327,24 @@ def _optional_float(value: object) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+def _resolve_min_fft_len(value: object) -> tuple[int, bool]:
+    if value is None:
+        return _AUTO_MIN_FFT_LEN, True
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"", "auto"}:
+            return _AUTO_MIN_FFT_LEN, True
+        try:
+            result = int(text)
+        except ValueError as exc:
+            raise ValueError("min_fft_len must be a positive integer or 'auto'") from exc
+    else:
+        result = int(value)
+    if result < 1:
+        raise ValueError("min_fft_len must be positive")
+    return result, False
 
 
 def _optional_int(value: object) -> int | None:
