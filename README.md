@@ -133,9 +133,12 @@ table rows. For example, F, Na, Al, P, and I shift the returned mass axis but do
 not increase spectral table size.
 
 The `full` preset loads `full.json` and covers 80 real elements with at least
-one stable isotope. Pseudo symbols and elements with no stable isotope, such as
-Bi, Th, Pa, U, and synthetic unstable elements, are excluded. Isotope rows use
-the natural-abundance values from the packaged source dataset.
+one strict stable isotope. Pseudo symbols and elements with no stable isotope,
+such as Bi, Th, Pa, U, and synthetic unstable elements, are excluded. Isotope
+rows are retained only when the IAEA LiveChart ground-state half-life is
+`STABLE`; natural-abundance values from the packaged source dataset are
+renormalized after removing radioactive isotope rows such as K-40, Ca-48,
+Xe-136, and Lu-176.
 
 ```python
 from fastiso import load_isotope_patterns, load_isotope_registry

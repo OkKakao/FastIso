@@ -150,7 +150,7 @@ def test_simulate_window_full_preset_uses_full_isotope_resource():
     assert response["preset"] == "full"
     assert response["metadata"]["isotope_resource"] == "full"
     assert response["metadata"]["isotope_data_version"] == (
-        "full-stable-elements-isospecpy-prototype-v1"
+        "full-strict-stable-isotopes-isospecpy-iaea-prototype-v1"
     )
     assert response["elements"] == ["Xe", "Pb"]
     assert response["summary"]["apex_intensity"] > 0.0
