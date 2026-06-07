@@ -24,7 +24,8 @@ except ImportError as exc:  # pragma: no cover - depends on Python build.
 
 _FORMULA_SPLIT_RE = re.compile(r"[\s,;]+")
 _DEFAULT_FORMULA = "C500H800N125O200S10"
-_DEFAULT_ELEMENTS = "C H N O S"
+_DEFAULT_PRESET = "full"
+_DEFAULT_ELEMENTS = ""
 _FWHM_TO_SIGMA = 2.0 * sqrt(2.0 * log(2.0))
 
 
@@ -57,7 +58,7 @@ class FastIsoGui:
         self.root.minsize(980, 660)
 
         self.formula_var = tk.StringVar(value=_DEFAULT_FORMULA)
-        self.preset_var = tk.StringVar(value="common")
+        self.preset_var = tk.StringVar(value=_DEFAULT_PRESET)
         self.elements_var = tk.StringVar(value=_DEFAULT_ELEMENTS)
         self.mode_var = tk.StringVar(value="auto")
         self.start_var = tk.StringVar(value="-0.5")

@@ -5,11 +5,14 @@ pytest.importorskip("tkinter")
 
 from fastiso.cli import simulate_profiles
 from fastiso.gui import (
+    _DEFAULT_ELEMENTS,
+    _DEFAULT_PRESET,
     _dragged_x_center,
     _dragged_y_zoom,
     _format_peak_label,
     _label_peak_indices,
     _max_normalized_intensity,
+    _parse_elements,
     _resolving_power_from_sigma,
     _sigma_from_resolving_power,
     _single_formula_mean_mass,
@@ -68,6 +71,12 @@ def test_gui_axis_drag_helpers_adjust_plot_view():
     assert center == pytest.approx(46.0)
     assert _dragged_y_zoom(1.0, dy_pixels=-120.0) == pytest.approx(2.0)
     assert _dragged_y_zoom(1.0, dy_pixels=120.0) == pytest.approx(0.5)
+
+
+def test_gui_defaults_cover_full_isotope_table():
+    assert _DEFAULT_PRESET == "full"
+    assert _parse_elements(_DEFAULT_ELEMENTS) is None
+    assert _single_formula_mean_mass("Xe2Pb", _DEFAULT_PRESET, _DEFAULT_ELEMENTS) > 0.0
 
 
 def test_gui_resolving_power_sigma_conversion_round_trips():

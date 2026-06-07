@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-128 passed, 6 skipped
+129 passed, 6 skipped
 ```
 
 ## Installation
@@ -229,8 +229,12 @@ or:
 
 The GUI accepts the same formula syntax as the CLI, including adjacent and
 nested bracketed groups such as `(CH3OH)2(HCl)2` and `K4[Fe(CN)6]`. Its default
-`auto` mode chooses an adaptive local window and enables Auto grid; choose
-`full` only when a complete dense profile is needed. The plot uses
+start state uses the `full` isotope preset with an empty explicit Elements
+field, so formulas can use any element present in the packaged full isotope
+table. The FT table still includes only the spectral elements actually present
+in the formula. Its default `auto` mode chooses an adaptive local window and
+enables Auto grid; choose `full` mode only when a complete dense profile is
+needed. The plot uses
 peak-preserving display sampling so narrow small-formula isotope peaks are not
 hidden by dense output grids. The GUI also exposes the same `none`, `sum`, and
 `max` normalization modes. The plot itself is always shown with max-normalized
