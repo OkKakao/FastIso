@@ -491,7 +491,7 @@ class FastIsoGui:
         settings: dict[str, Any] = {
             "formulas": formulas,
             "preset": self.preset_var.get().strip() or "common",
-            "charge_state": _required_int(self.charge_state_var.get(), "Charge state"),
+            "charge_state": _required_charge_state(self.charge_state_var.get()),
             "dm": _required_float(self.dm_var.get(), "Table dm"),
             "auto_grid": bool(self.auto_grid_var.get()),
             "samples_per_fwhm": _required_float(
@@ -1090,6 +1090,13 @@ def _required_int(text: str, label: str) -> int:
     return value
 
 
+def _required_charge_state(text: str) -> int:
+    value = _optional_signed_int(text, "Charge state")
+    if value is None:
+        raise ValueError("Charge state is required")
+    return value
+
+
 def _min_fft_value(text: str) -> str | int:
     stripped = text.strip()
     if not stripped or stripped.lower() == "auto":
@@ -1108,6 +1115,16 @@ def _optional_int(text: str, label: str) -> int | None:
     if value < 1:
         raise ValueError(f"{label} must be positive")
     return value
+
+
+def _optional_signed_int(text: str, label: str) -> int | None:
+    stripped = text.strip()
+    if not stripped:
+        return None
+    try:
+        return int(stripped)
+    except ValueError as exc:
+        raise ValueError(f"{label} must be an integer") from exc
 
 
 if __name__ == "__main__":

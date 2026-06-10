@@ -51,7 +51,7 @@ Implemented:
 Tested on the local development environment:
 
 ```text
-132 passed, 6 skipped
+133 passed, 6 skipped
 ```
 
 ## Installation
@@ -142,11 +142,12 @@ broadening kernel on the mass axis. Resolving power is converted to this sigma
 per formula with `FWHM = mass / resolving_power` and
 `sigma = FWHM / 2.35482`.
 Pass `--charge-state` or `--charge` to export charged spectra on an `m/z` axis:
-FastIso applies `(neutral_mass - z * electron_mass) / abs(z)` for nonzero
-integer charge states. This only applies the electron-mass correction; adducts
-or proton additions should be included directly in the formula. For charged
-outputs, metadata keeps `mass_output_dm` for the neutral-mass sampling interval
-and `output_dm` for the exported `m/z` interval.
+`0` is neutral mass, positive and negative integer charge states are supported,
+and FastIso applies `(neutral_mass - z * electron_mass) / abs(z)` for nonzero
+charges. This only applies the electron-mass correction; adducts or proton
+additions should be included directly in the formula. For charged outputs,
+metadata keeps `mass_output_dm` for the neutral-mass sampling interval and
+`output_dm` for the exported `m/z` interval.
 In the GUI, the resolving-power and Gaussian-sigma fields are synchronized for
 a single formula using that formula's mean mass. For multiple formulas, the
 resolving-power mode still produces one effective sigma per formula.

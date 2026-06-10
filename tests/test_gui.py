@@ -17,6 +17,7 @@ from fastiso.gui import (
     _sigma_from_resolving_power,
     _single_formula_mean_mass,
     _profile_plot_points,
+    _required_charge_state,
 )
 
 
@@ -82,6 +83,12 @@ def test_gui_defaults_cover_full_isotope_table():
 def test_gui_axis_label_follows_charge_metadata():
     assert _axis_label_for_result(None) == "mass"
     assert _axis_label_for_result({"metadata": {"axis_unit": "m/z"}}) == "m/z"
+
+
+def test_gui_charge_state_accepts_neutral_and_negative_values():
+    assert _required_charge_state("0") == 0
+    assert _required_charge_state("-2") == -2
+    assert _required_charge_state("+3") == 3
 
 
 def test_gui_resolving_power_sigma_conversion_round_trips():
